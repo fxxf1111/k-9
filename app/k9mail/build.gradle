@@ -60,14 +60,20 @@ android {
     }
 
     signingConfigs {
-        release
+        release {
+            storeFile file("TestKey.jks")
+            storePassword "123321"
+            keyAlias "Test"
+            keyPassword "123321"
+        }
+
     }
+
+
 
     buildTypes {
         release {
-            if (project.hasProperty('storeFile')) {
-                signingConfig signingConfigs.release
-            }
+            signingConfig signingConfigs.release
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -131,15 +137,3 @@ androidExtensions {
     experimental = true
 }
 
-if (project.hasProperty('keyAlias')) {
-    android.signingConfigs.release.keyAlias = keyAlias
-}
-if (project.hasProperty('keyPassword')) {
-    android.signingConfigs.release.keyPassword = keyPassword
-}
-if (project.hasProperty('storeFile')) {
-    android.signingConfigs.release.storeFile = file(storeFile)
-}
-if (project.hasProperty('storePassword')) {
-    android.signingConfigs.release.storePassword = storePassword
-}
