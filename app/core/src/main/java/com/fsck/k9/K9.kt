@@ -158,7 +158,7 @@ object K9 : EarlyInit {
     var backgroundOps = BACKGROUND_OPS.WHEN_CHECKED_AUTO_SYNC
 
     @JvmStatic
-    var isShowAnimations = true
+    var isShowAnimations = false
 
     @JvmStatic
     var isConfirmDelete = false
