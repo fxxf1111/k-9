@@ -191,7 +191,7 @@ object K9 : EarlyInit {
     var isShowMessageListStars = true
 
     @JvmStatic
-    var messageListPreviewLines = 2
+    var messageListPreviewLines = 4
 
     @JvmStatic
     var isShowCorrespondentNames = true
