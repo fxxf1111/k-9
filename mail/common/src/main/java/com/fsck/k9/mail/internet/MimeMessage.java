@@ -11,8 +11,8 @@ import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.TimeZone;
 
 import androidx.annotation.NonNull;
@@ -22,6 +22,7 @@ import com.fsck.k9.mail.Body;
 import com.fsck.k9.mail.BodyFactory;
 import com.fsck.k9.mail.BodyPart;
 import com.fsck.k9.mail.DefaultBodyFactory;
+import com.fsck.k9.mail.Header;
 import com.fsck.k9.mail.Message;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.MimeType;
@@ -74,7 +75,19 @@ public class MimeMessage extends Message {
         return mimeMessage;
     }
 
+    /**
+     * Creates an instance that will check the header field syntax when adding headers.
+     */
+    public static MimeMessage create() {
+        return new MimeMessage(true);
+    }
+
     public MimeMessage() {
+        this(false);
+    }
+
+    private MimeMessage(boolean checkHeaders) {
+        mHeader.setCheckHeaders(checkHeaders);
     }
 
     /**
@@ -260,12 +273,13 @@ public class MimeMessage extends Message {
      */
     @Override
     public String getSubject() {
-        return MimeUtility.unfoldAndDecode(getFirstHeader("Subject"), this);
+        return MimeUtility.unfoldAndDecode(getFirstHeader(MimeHeader.SUBJECT), this);
     }
 
     @Override
     public void setSubject(String subject) {
-        setHeader("Subject", subject);
+        String encodedSubject = MimeHeaderEncoder.encode(MimeHeader.SUBJECT, subject);
+        setHeader(MimeHeader.SUBJECT, encodedSubject);
     }
 
     @Override
@@ -432,8 +446,8 @@ public class MimeMessage extends Message {
     }
 
     @Override
-    public Set<String> getHeaderNames() {
-        return mHeader.getHeaderNames();
+    public List<Header> getHeaders() {
+        return mHeader.getHeaders();
     }
 
     @Override
@@ -464,17 +478,6 @@ public class MimeMessage extends Message {
             mBody.setEncoding(encoding);
         }
         setHeader(MimeHeader.HEADER_CONTENT_TRANSFER_ENCODING, encoding);
-    }
-
-    @Override
-    public void setCharset(String charset) throws MessagingException {
-        mHeader.setCharset(charset);
-        if (mBody instanceof Multipart) {
-            ((Multipart)mBody).setCharset(charset);
-        } else if (mBody instanceof TextBody) {
-            CharsetSupport.setCharset(charset, this);
-            ((TextBody)mBody).setCharset(charset);
-        }
     }
 
     private class MimeMessageBuilder implements ContentHandler {

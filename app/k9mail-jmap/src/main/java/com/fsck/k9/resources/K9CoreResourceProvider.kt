@@ -8,15 +8,15 @@ class K9CoreResourceProvider(private val context: Context) : CoreResourceProvide
     override fun defaultSignature(): String = context.getString(R.string.default_signature)
     override fun defaultIdentityDescription(): String = context.getString(R.string.default_identity_description)
 
-    override fun sendAlternateChooserTitle(): String = context.getString(R.string.send_alternate_chooser_title)
-
     override fun internalStorageProviderName(): String =
-            context.getString(R.string.local_storage_provider_internal_label)
+        context.getString(R.string.local_storage_provider_internal_label)
 
     override fun externalStorageProviderName(): String =
-            context.getString(R.string.local_storage_provider_external_label)
+        context.getString(R.string.local_storage_provider_external_label)
 
     override fun contactDisplayNamePrefix(): String = context.getString(R.string.message_to_label)
+    override fun contactUnknownSender(): String = context.getString(R.string.unknown_sender)
+    override fun contactUnknownRecipient(): String = context.getString(R.string.unknown_recipient)
 
     override fun messageHeaderFrom(): String = context.getString(R.string.message_compose_quote_header_from)
     override fun messageHeaderTo(): String = context.getString(R.string.message_compose_quote_header_to)
@@ -31,10 +31,10 @@ class K9CoreResourceProvider(private val context: Context) : CoreResourceProvide
     override fun encryptedSubject(): String = context.getString(R.string.encrypted_subject)
 
     override fun replyHeader(sender: String): String =
-            context.getString(R.string.message_compose_reply_header_fmt, sender)
+        context.getString(R.string.message_compose_reply_header_fmt, sender)
 
     override fun replyHeader(sender: String, sentDate: String): String =
-            context.getString(R.string.message_compose_reply_header_fmt_with_date, sentDate, sender)
+        context.getString(R.string.message_compose_reply_header_fmt_with_date, sentDate, sender)
 
     override fun searchAllMessagesTitle(): String = context.getString(R.string.search_all_messages_title)
     override fun searchAllMessagesDetail(): String = context.getString(R.string.search_all_messages_detail)

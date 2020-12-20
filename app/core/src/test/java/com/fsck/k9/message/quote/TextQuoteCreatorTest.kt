@@ -1,9 +1,6 @@
 package com.fsck.k9.message.quote
 
-import android.content.res.Configuration
-import android.content.res.Resources
 import com.fsck.k9.Account.QuoteStyle
-import com.fsck.k9.K9
 import com.fsck.k9.RobolectricTest
 import com.fsck.k9.TestCoreResourceProvider
 import com.fsck.k9.crlf
@@ -12,29 +9,24 @@ import com.fsck.k9.mail.Message
 import com.fsck.k9.mail.Message.RecipientType
 import com.google.common.truth.Truth.assertThat
 import com.nhaarman.mockitokotlin2.doReturn
+import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import java.util.Date
-import java.util.Locale
-import org.junit.Before
 import org.junit.Test
 
 class TextQuoteCreatorTest : RobolectricTest() {
-    val resources = mock<Resources> {
-        on { configuration } doReturn Configuration().apply { locale = Locale.ROOT }
-    }
+    val sentDate = Date(1540421219L)
     val originalMessage = mock<Message> {
-        on { sentDate } doReturn Date(1540421219L)
+        on { sentDate } doReturn sentDate
         on { from } doReturn Address.parse("Alice <alice@sender.example>")
         on { getRecipients(RecipientType.TO) } doReturn Address.parse("bob@recipient.example")
         on { getRecipients(RecipientType.CC) } doReturn emptyArray<Address>()
         on { subject } doReturn "Message subject"
     }
-    val textQuoteCreator = TextQuoteCreator(QuoteHelper(resources), TestCoreResourceProvider())
-
-    @Before
-    fun setUp() {
-        K9.isHideTimeZone = true
+    val quoteDateFormatter = mock<QuoteDateFormatter> {
+        on { format(eq(sentDate)) } doReturn "January 18, 1970 7:53:41 PM UTC"
     }
+    val textQuoteCreator = TextQuoteCreator(quoteDateFormatter, TestCoreResourceProvider())
 
     @Test
     fun prefixQuote() {
@@ -44,12 +36,14 @@ class TextQuoteCreatorTest : RobolectricTest() {
 
         val quote = createQuote(messageBody, quoteStyle, quotePrefix)
 
-        assertThat(quote).isEqualTo("""
+        assertThat(quote).isEqualTo(
+            """
             On January 18, 1970 7:53:41 PM UTC, Alice <alice@sender.example> wrote:
             > Line 1
             > Line 2
             > Line 3
-            """.trimIndent().crlf())
+            """.trimIndent().crlf()
+        )
     }
 
     @Test
@@ -60,16 +54,19 @@ class TextQuoteCreatorTest : RobolectricTest() {
 
         val quote = createQuote(messageBody, quoteStyle, quotePrefix)
 
-        assertThat(quote).isEqualTo("""
+        assertThat(quote).isEqualTo(
+            """
             On January 18, 1970 7:53:41 PM UTC, Alice <alice@sender.example> wrote:
             $1\t Line 1
             $1\t Line 2
-            """.trimIndent().crlf())
+            """.trimIndent().crlf()
+        )
     }
 
     @Test
     fun prefixQuote_withLongLines() {
-        val messageBody = """
+        val messageBody =
+            """
             [-------] [-------] [-------] [-------] [-------] [-------] [-------] [-------] [-------] [-------]
             [-------------------------------------------------------------------------------------------------]
             """.trimIndent().crlf()
@@ -78,11 +75,13 @@ class TextQuoteCreatorTest : RobolectricTest() {
 
         val quote = createQuote(messageBody, quoteStyle, quotePrefix)
 
-        assertThat(quote).isEqualTo("""
+        assertThat(quote).isEqualTo(
+            """
             On January 18, 1970 7:53:41 PM UTC, Alice <alice@sender.example> wrote:
             > [-------] [-------] [-------] [-------] [-------] [-------] [-------] [-------] [-------] [-------]
             > [-------------------------------------------------------------------------------------------------]
-            """.trimIndent().crlf())
+            """.trimIndent().crlf()
+        )
     }
 
     @Test
@@ -92,7 +91,8 @@ class TextQuoteCreatorTest : RobolectricTest() {
 
         val quote = createQuote(messageBody, quoteStyle)
 
-        assertThat(quote).isEqualTo("""
+        assertThat(quote).isEqualTo(
+            """
 
             -------- Original Message --------
             From: Alice <alice@sender.example>
@@ -103,7 +103,8 @@ class TextQuoteCreatorTest : RobolectricTest() {
             Line 1
             Line 2
             Line 3
-            """.trimIndent().crlf())
+            """.trimIndent().crlf()
+        )
     }
 
     private fun createQuote(messageBody: String, quoteStyle: QuoteStyle, quotePrefix: String = ""): String {

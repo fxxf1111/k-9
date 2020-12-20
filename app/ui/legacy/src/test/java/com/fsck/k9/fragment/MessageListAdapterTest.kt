@@ -286,8 +286,8 @@ class MessageListAdapterTest : RobolectricTest() {
     @Test
     fun withoutSenderAboveSubjectAndDefaultFontSize_shouldNotSetTextSizeOfFirstLineView() {
         val adapter = createAdapter(
-                fontSizes = createFontSizes(subject = FONT_DEFAULT),
-                senderAboveSubject = false
+            fontSizes = createFontSizes(subject = FONT_DEFAULT),
+            senderAboveSubject = false
         )
 
         val view = adapter.createAndBindView()
@@ -298,8 +298,8 @@ class MessageListAdapterTest : RobolectricTest() {
     @Test
     fun withoutSenderAboveSubjectAndNonDefaultFontSize_shouldSetTextSizeOfFirstLineView() {
         val adapter = createAdapter(
-                fontSizes = createFontSizes(subject = LARGE),
-                senderAboveSubject = false
+            fontSizes = createFontSizes(subject = LARGE),
+            senderAboveSubject = false
         )
 
         val view = adapter.createAndBindView()
@@ -310,8 +310,8 @@ class MessageListAdapterTest : RobolectricTest() {
     @Test
     fun withSenderAboveSubjectAndDefaultFontSize_shouldNotSetTextSizeOfFirstLineView() {
         val adapter = createAdapter(
-                fontSizes = createFontSizes(sender = FONT_DEFAULT),
-                senderAboveSubject = true
+            fontSizes = createFontSizes(sender = FONT_DEFAULT),
+            senderAboveSubject = true
         )
 
         val view = adapter.createAndBindView()
@@ -322,8 +322,8 @@ class MessageListAdapterTest : RobolectricTest() {
     @Test
     fun withSenderAboveSubjectAndNonDefaultFontSize_shouldSetTextSizeOfFirstLineView() {
         val adapter = createAdapter(
-                fontSizes = createFontSizes(sender = LARGE),
-                senderAboveSubject = true
+            fontSizes = createFontSizes(sender = LARGE),
+            senderAboveSubject = true
         )
 
         val view = adapter.createAndBindView()
@@ -334,8 +334,8 @@ class MessageListAdapterTest : RobolectricTest() {
     @Test
     fun withoutSenderAboveSubjectAndDefaultFontSize_shouldNotSetTextSizeSpanInSecondLineView() {
         val adapter = createAdapter(
-                fontSizes = createFontSizes(sender = FONT_DEFAULT),
-                senderAboveSubject = false
+            fontSizes = createFontSizes(sender = FONT_DEFAULT),
+            senderAboveSubject = false
         )
 
         val view = adapter.createAndBindView()
@@ -346,8 +346,8 @@ class MessageListAdapterTest : RobolectricTest() {
     @Test
     fun withoutSenderAboveSubjectAndNonDefaultFontSize_shouldSetTextSizeSpanInSecondLineView() {
         val adapter = createAdapter(
-                fontSizes = createFontSizes(sender = LARGE),
-                senderAboveSubject = false
+            fontSizes = createFontSizes(sender = LARGE),
+            senderAboveSubject = false
         )
 
         val view = adapter.createAndBindView()
@@ -358,8 +358,8 @@ class MessageListAdapterTest : RobolectricTest() {
     @Test
     fun withSenderAboveSubjectAndDefaultFontSize_shouldNotSetTextSizeSpanInSecondLineView() {
         val adapter = createAdapter(
-                fontSizes = createFontSizes(subject = FONT_DEFAULT),
-                senderAboveSubject = true
+            fontSizes = createFontSizes(subject = FONT_DEFAULT),
+            senderAboveSubject = true
         )
 
         val view = adapter.createAndBindView()
@@ -370,8 +370,8 @@ class MessageListAdapterTest : RobolectricTest() {
     @Test
     fun withSenderAboveSubjectAndNonDefaultFontSize_shouldSetTextSizeSpanInSecondLineView() {
         val adapter = createAdapter(
-                fontSizes = createFontSizes(subject = LARGE),
-                senderAboveSubject = true
+            fontSizes = createFontSizes(subject = LARGE),
+            senderAboveSubject = true
         )
 
         val view = adapter.createAndBindView()
@@ -400,8 +400,8 @@ class MessageListAdapterTest : RobolectricTest() {
     @Test
     fun previewWithDefaultFontSize_shouldNotSetTextSizeOfSecondLineView() {
         val adapter = createAdapter(
-                fontSizes = createFontSizes(preview = FONT_DEFAULT),
-                previewLines = 1
+            fontSizes = createFontSizes(preview = FONT_DEFAULT),
+            previewLines = 1
         )
 
         val view = adapter.createAndBindView()
@@ -412,8 +412,8 @@ class MessageListAdapterTest : RobolectricTest() {
     @Test
     fun previewWithNonDefaultFontSize_shouldSetTextSizeOfSecondLineView() {
         val adapter = createAdapter(
-                fontSizes = createFontSizes(preview = LARGE),
-                previewLines = 1
+            fontSizes = createFontSizes(preview = LARGE),
+            previewLines = 1
         )
 
         val view = adapter.createAndBindView()
@@ -446,14 +446,14 @@ class MessageListAdapterTest : RobolectricTest() {
         showAccountChip: Boolean = false
     ): MessageListAdapter {
         val appearance = MessageListAppearance(
-                fontSizes,
-                previewLines,
-                stars,
-                senderAboveSubject,
-                showContactPicture,
-                showingThreadedList,
-                backGroundAsReadIndicator,
-                showAccountChip
+            fontSizes,
+            previewLines,
+            stars,
+            senderAboveSubject,
+            showContactPicture,
+            showingThreadedList,
+            backGroundAsReadIndicator,
+            showAccountChip
         )
 
         return MessageListAdapter(
@@ -475,8 +475,7 @@ class MessageListAdapterTest : RobolectricTest() {
         threadCount: Int = 0,
         messageDate: Long = 0L,
         displayName: CharSequence = "irrelevant",
-        counterPartyAddress: Address? = Address.parse("irrelevant@domain.example").first(),
-        fromMe: Boolean = false,
+        displayAddress: Address? = Address.parse("irrelevant@domain.example").first(),
         toMe: Boolean = false,
         ccMe: Boolean = false,
         previewText: String = "irrelevant",
@@ -490,7 +489,6 @@ class MessageListAdapterTest : RobolectricTest() {
         folderId: Long = 0L,
         messageUid: String = "irrelevant",
         databaseId: Long = 0L,
-        senderAddress: String? = null,
         threadRoot: Long = 0L
     ): MessageListItem {
         return MessageListItem(
@@ -500,8 +498,7 @@ class MessageListAdapterTest : RobolectricTest() {
             threadCount,
             messageDate,
             displayName,
-            counterPartyAddress,
-            fromMe,
+            displayAddress,
             toMe,
             ccMe,
             previewText,
@@ -515,7 +512,6 @@ class MessageListAdapterTest : RobolectricTest() {
             folderId,
             messageUid,
             databaseId,
-            senderAddress,
             threadRoot
         )
     }

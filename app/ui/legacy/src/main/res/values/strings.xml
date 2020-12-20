@@ -115,6 +115,7 @@ Please submit bug reports, contribute new features and ask questions at
     <string name="forward_as_attachment_action">Forward as attachment</string>
     <string name="edit_as_new_message_action">Edit as new message</string>
     <string name="move_action">Move</string>
+    <string name="move_to_drafts_action">Move to Drafts</string>
     <string name="single_message_options_action">Send…</string>
     <string name="refile_action">Refile…</string>
     <string name="done_action">Done</string>
@@ -985,6 +986,8 @@ Please submit bug reports, contribute new features and ask questions at
     <string name="webview_contextmenu_link_share_action">Share link</string>
     <string name="webview_contextmenu_link_copy_action">Copy link to clipboard</string>
     <string name="webview_contextmenu_link_clipboard_label">Link</string>
+    <string name="webview_contextmenu_link_text_copy_action">Copy link text to clipboard</string>
+    <string name="webview_contextmenu_link_text_clipboard_label">Link text</string>
 
     <string name="webview_contextmenu_image_title">Image</string>
     <string name="webview_contextmenu_image_view_action">View image</string>
@@ -1079,7 +1082,8 @@ Please submit bug reports, contribute new features and ask questions at
     <string name="recipient_bcc">Bcc</string>
     <string name="recipient_to">To</string>
     <string name="recipient_from">From</string>
-    <string name="unknown_recipient"><![CDATA[<Unknown Recipient>]]></string>
+    <string name="unknown_recipient">&lt;Unknown Recipient&gt;</string>
+    <string name="unknown_sender">&lt;Unknown Sender&gt;</string>
     <string name="address_type_home">Home</string>
     <string name="address_type_work">Work</string>
     <string name="address_type_other">Other</string>

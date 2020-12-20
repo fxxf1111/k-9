@@ -1,21 +1,23 @@
 package com.fsck.k9.mail.internet
 
+import com.fsck.k9.mail.Header
 import com.fsck.k9.mail.internet.MimeHeader.Field.NameValueField
 import com.fsck.k9.mail.internet.MimeHeader.Field.RawField
-import java.io.BufferedWriter
 import java.io.IOException
 import java.io.OutputStream
-import java.io.OutputStreamWriter
-import java.nio.charset.Charset
 import java.util.ArrayList
 import java.util.LinkedHashSet
 
 class MimeHeader {
     private val fields: MutableList<Field> = ArrayList()
-    private var charset: String? = null
 
     val headerNames: Set<String>
         get() = fields.mapTo(LinkedHashSet()) { it.name }
+
+    val headers: List<Header>
+        get() = fields.map { Header(it.name, it.value) }
+
+    var checkHeaders = false
 
     fun clear() {
         fields.clear()
@@ -26,11 +28,13 @@ class MimeHeader {
     }
 
     fun addHeader(name: String, value: String) {
-        val field = NameValueField(name, MimeUtility.foldAndEncode(value))
+        requireValidHeader(name, value)
+        val field = NameValueField(name, value)
         fields.add(field)
     }
 
     fun addRawHeader(name: String, raw: String) {
+        requireValidRawHeader(name, raw)
         val field = RawField(name, raw)
         fields.add(field)
     }
@@ -60,7 +64,7 @@ class MimeHeader {
 
     @Throws(IOException::class)
     fun writeTo(out: OutputStream) {
-        val writer = BufferedWriter(OutputStreamWriter(out), 1024)
+        val writer = out.writer().buffered(1024)
         writer.appendFields()
         writer.flush()
     }
@@ -76,26 +80,34 @@ class MimeHeader {
     }
 
     private fun Appendable.appendNameValueField(field: Field) {
-        val value = field.value
-        val encodedValue = if (hasToBeEncoded(value)) {
-            val charset = this@MimeHeader.charset?.let { Charset.forName(it) }
-            EncoderUtil.encodeEncodedWord(value, charset)
-        } else {
-            value
-        }
-
         append(field.name)
         append(": ")
-        append(encodedValue)
+        append(field.value)
     }
 
-    // encode non printable characters except LF/CR/TAB codes.
-    private fun hasToBeEncoded(text: String): Boolean {
-        return text.any { !it.isVChar() && !it.isWspOrCrlf() }
+    private fun requireValidHeader(name: String, value: String) {
+        if (checkHeaders) {
+            checkHeader(name, value)
+        }
     }
 
-    fun setCharset(charset: String?) {
-        this.charset = charset
+    private fun requireValidRawHeader(name: String, raw: String) {
+        if (checkHeaders) {
+            if (!raw.startsWith(name)) throw AssertionError("Raw header value needs to start with header name")
+            val delimiterIndex = raw.indexOf(':')
+            val value = if (delimiterIndex == raw.lastIndex) "" else raw.substring(delimiterIndex + 1).trimStart()
+
+            checkHeader(name, value)
+        }
+    }
+
+    private fun checkHeader(name: String, value: String) {
+        try {
+            MimeHeaderChecker.checkHeader(name, value)
+        } catch (e: MimeHeaderParserException) {
+            // Use AssertionError so we crash the app
+            throw AssertionError("Invalid header", e)
+        }
     }
 
     companion object {

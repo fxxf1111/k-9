@@ -1,6 +1,5 @@
 apply plugin: 'com.android.library'
 apply plugin: 'org.jetbrains.kotlin.android'
-apply plugin: 'org.jlleitschuh.gradle.ktlint'
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${versions.kotlin}"
@@ -16,6 +15,7 @@ dependencies {
     testImplementation project(':app:testing')
     testImplementation "org.robolectric:robolectric:${versions.robolectric}"
     testImplementation "junit:junit:${versions.junit}"
+    testImplementation "com.google.truth:truth:${versions.truth}"
     testImplementation "org.mockito:mockito-core:${versions.mockito}"
     testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:${versions.mockitoKotlin}"
     testImplementation "org.koin:koin-test:${versions.koin}"

@@ -93,6 +93,7 @@ Ju lutemi, parashtrim njoftimesh për të meta, kontribute për veçori të reaj
   <string name="forward_as_attachment_action">Përcille si bashkëngjitje</string>
   <string name="edit_as_new_message_action">Përpunojeni si mesazh të ri</string>
   <string name="move_action">Lëvizeni</string>
+  <string name="move_to_drafts_action">Kaloje te Skicat</string>
   <string name="single_message_options_action">Dërgoni…</string>
   <string name="refile_action">Riskedojeni…</string>
   <string name="done_action">U bë</string>
@@ -810,6 +811,8 @@ Ju lutemi, parashtrim njoftimesh për të meta, kontribute për veçori të reaj
   <string name="webview_contextmenu_link_share_action">Lidhje ndarjesh me të tjerë</string>
   <string name="webview_contextmenu_link_copy_action">Kopjoja lidhjen në të papastër</string>
   <string name="webview_contextmenu_link_clipboard_label">Lidhje</string>
+  <string name="webview_contextmenu_link_text_copy_action">Kopjo tekst lidhjeje në të papastër</string>
+  <string name="webview_contextmenu_link_text_clipboard_label">Tekst lidhjeje</string>
   <string name="webview_contextmenu_image_title">Figurë</string>
   <string name="webview_contextmenu_image_view_action">Shihni figurën</string>
   <string name="webview_contextmenu_image_save_action">Ruaje figurën</string>
@@ -887,6 +890,7 @@ Ju lutemi, parashtrim njoftimesh për të meta, kontribute për veçori të reaj
   <string name="recipient_to">Për</string>
   <string name="recipient_from">Nga</string>
   <string name="unknown_recipient">&lt;Marrës i Panjohur&gt;</string>
+  <string name="unknown_sender">&lt;Dërgues i Panjohur&gt;</string>
   <string name="address_type_home">Shtëpie</string>
   <string name="address_type_work">Pune</string>
   <string name="address_type_other">Tjetër</string>

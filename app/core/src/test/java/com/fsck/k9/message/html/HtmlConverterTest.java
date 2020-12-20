@@ -251,6 +251,18 @@ public class HtmlConverterTest {
     }
 
     @Test
+    public void signatureEndingWithUrl() {
+        String text = "text\n-- \nsignature with url: https://domain.example/";
+        String result = HtmlConverter.textToHtml(text);
+        assertEquals("<pre dir=\"auto\" class=\"k9mail\">" +
+                "text<br>" +
+                "<div class='k9mail-signature'>" +
+                "-- <br>" +
+                "signature with url: <a href=\"https://domain.example/\">https://domain.example/</a>" +
+                "</div></pre>", result);
+    }
+
+    @Test
     public void htmlToText_withLineBreaks() {
         String input = "One<br>Two<br><br>Three";
 
@@ -266,5 +278,32 @@ public class HtmlConverterTest {
         String result = HtmlConverter.htmlToText(input);
 
         assertEquals("One\n\nTwo\nThree\n\nFour", result);
+    }
+
+    @Test
+    public void htmlToText_withLink() {
+        String input = "<a href='https://domain.example/'>Link text</a>";
+
+        String result = HtmlConverter.htmlToText(input);
+
+        assertEquals("Link text <https://domain.example/>", result);
+    }
+
+    @Test
+    public void htmlToText_withLinkifiedUrl() {
+        String input = "Text <a href='https://domain.example/path/'>https://domain.example/path/</a> more text";
+
+        String result = HtmlConverter.htmlToText(input);
+
+        assertEquals("Text https://domain.example/path/ more text", result);
+    }
+
+    @Test
+    public void htmlToText_withLinkifiedUrlContainingFormatting() {
+        String input = "<a href='https://domain.example/path/'>https://<b>domain.example</b>/path/</a>";
+
+        String result = HtmlConverter.htmlToText(input);
+
+        assertEquals("https://domain.example/path/", result);
     }
 }

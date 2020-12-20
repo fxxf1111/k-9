@@ -4,12 +4,12 @@ interface CoreResourceProvider {
     fun defaultSignature(): String
     fun defaultIdentityDescription(): String
 
-    fun sendAlternateChooserTitle(): String
-
     fun internalStorageProviderName(): String
     fun externalStorageProviderName(): String
 
     fun contactDisplayNamePrefix(): String
+    fun contactUnknownSender(): String
+    fun contactUnknownRecipient(): String
 
     fun messageHeaderFrom(): String
     fun messageHeaderTo(): String

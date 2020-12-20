@@ -92,6 +92,7 @@ Si us plau, envieu informes d\'errors, contribuïu-hi amb noves millores i feu p
   <string name="forward_as_attachment_action">Reenvia com a adjunt</string>
   <string name="edit_as_new_message_action">Edita\'l com a missatge nou</string>
   <string name="move_action">Mou</string>
+  <string name="move_to_drafts_action">Mou als esborranys</string>
   <string name="single_message_options_action">Opcions del missatge…</string>
   <string name="refile_action">Rearxiva…</string>
   <string name="done_action">Fet</string>
@@ -809,6 +810,8 @@ Si us plau, envieu informes d\'errors, contribuïu-hi amb noves millores i feu p
   <string name="webview_contextmenu_link_share_action">Comparteix l\'enllaç</string>
   <string name="webview_contextmenu_link_copy_action">Copia l\'enllaç</string>
   <string name="webview_contextmenu_link_clipboard_label">Enllaç</string>
+  <string name="webview_contextmenu_link_text_copy_action">Copia el text de l\'enllaç</string>
+  <string name="webview_contextmenu_link_text_clipboard_label">Text de l\'enllaç</string>
   <string name="webview_contextmenu_image_title">Imatge</string>
   <string name="webview_contextmenu_image_view_action">Mostra la imatge</string>
   <string name="webview_contextmenu_image_save_action">Desa la imatge</string>
@@ -885,7 +888,8 @@ Si us plau, envieu informes d\'errors, contribuïu-hi amb noves millores i feu p
   <string name="recipient_bcc">C/o</string>
   <string name="recipient_to">A</string>
   <string name="recipient_from">De:</string>
-  <string name="unknown_recipient"><![CDATA[<Destinatari desconegut>]]></string>
+  <string name="unknown_recipient">&lt;Destinatari desconegut&gt;</string>
+  <string name="unknown_sender">&lt;Remitent desconegut&gt;</string>
   <string name="address_type_home">Casa</string>
   <string name="address_type_work">Feina</string>
   <string name="address_type_other">Altres</string>

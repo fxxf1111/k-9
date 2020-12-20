@@ -79,6 +79,7 @@ import com.fsck.k9.fragment.AttachmentDownloadDialogFragment.AttachmentDownloadC
 import com.fsck.k9.fragment.ProgressDialogFragment;
 import com.fsck.k9.fragment.ProgressDialogFragment.CancelListener;
 import com.fsck.k9.helper.Contacts;
+import com.fsck.k9.helper.CrLfConverter;
 import com.fsck.k9.helper.IdentityHelper;
 import com.fsck.k9.helper.MailTo;
 import com.fsck.k9.helper.ReplyToParser;
@@ -89,7 +90,6 @@ import com.fsck.k9.mail.Message;
 import com.fsck.k9.mail.Message.RecipientType;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.internet.MimeMessage;
-import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mailstore.LocalMessage;
 import com.fsck.k9.mailstore.MessageViewInfo;
 import com.fsck.k9.message.AutocryptStatusInteractor;
@@ -103,7 +103,6 @@ import com.fsck.k9.message.QuotedTextMode;
 import com.fsck.k9.message.SimpleMessageBuilder;
 import com.fsck.k9.message.SimpleMessageFormat;
 import com.fsck.k9.search.LocalSearch;
-import com.fsck.k9.ui.EolConvertingEditText;
 import com.fsck.k9.ui.R;
 import com.fsck.k9.ui.base.K9Activity;
 import com.fsck.k9.ui.base.ThemeManager;
@@ -131,8 +130,6 @@ public class MessageCompose extends K9Activity implements OnClickListener,
     private static final int DIALOG_CONFIRM_DISCARD_ON_BACK = 2;
     private static final int DIALOG_CHOOSE_IDENTITY = 3;
     private static final int DIALOG_CONFIRM_DISCARD = 4;
-
-    private static final long INVALID_DRAFT_ID = MessagingController.INVALID_MESSAGE_ID;
 
     public static final String ACTION_COMPOSE = "com.fsck.k9.intent.action.COMPOSE";
     public static final String ACTION_REPLY = "com.fsck.k9.intent.action.REPLY";
@@ -181,6 +178,8 @@ public class MessageCompose extends K9Activity implements OnClickListener,
 
     private final MessageLoaderHelperFactory messageLoaderHelperFactory = DI.get(MessageLoaderHelperFactory.class);
     private final DefaultFolderProvider defaultFolderProvider = DI.get(DefaultFolderProvider.class);
+    private final MessagingController messagingController = DI.get(MessagingController.class);
+    private final Preferences preferences = DI.get(Preferences.class);
 
     private final PermissionUiHelper permissionUiHelper = new K9PermissionUiHelper(this);
 
@@ -215,12 +214,7 @@ public class MessageCompose extends K9Activity implements OnClickListener,
     private boolean alreadyNotifiedUserOfEmptySubject = false;
     private boolean changesMadeSinceLastSave = false;
 
-    /**
-     * The database ID of this message's draft. This is used when saving drafts so the message in
-     * the database is updated instead of being created anew. This property is INVALID_DRAFT_ID
-     * until the first save.
-     */
-    private long draftId = INVALID_DRAFT_ID;
+    private Long draftMessageId = null;
 
     private Action action;
 
@@ -228,8 +222,8 @@ public class MessageCompose extends K9Activity implements OnClickListener,
 
     private TextView chooseIdentityButton;
     private EditText subjectView;
-    private EolConvertingEditText signatureView;
-    private EolConvertingEditText messageContentView;
+    private EditText signatureView;
+    private EditText messageContentView;
     private LinearLayout attachmentsView;
 
     private String referencedMessageIds;
@@ -287,10 +281,10 @@ public class MessageCompose extends K9Activity implements OnClickListener,
                 relatedMessageReference.getAccountUuid() :
                 intent.getStringExtra(EXTRA_ACCOUNT);
 
-        account = Preferences.getPreferences(this).getAccount(accountUuid);
+        account = preferences.getAccount(accountUuid);
 
         if (account == null) {
-            account = Preferences.getPreferences(this).getDefaultAccount();
+            account = preferences.getDefaultAccount();
         }
 
         if (account == null) {
@@ -324,8 +318,8 @@ public class MessageCompose extends K9Activity implements OnClickListener,
         subjectView = findViewById(R.id.subject);
         subjectView.getInputExtras(true).putBoolean("allowEmoji", true);
 
-        EolConvertingEditText upperSignature = findViewById(R.id.upper_signature);
-        EolConvertingEditText lowerSignature = findViewById(R.id.lower_signature);
+        EditText upperSignature = findViewById(R.id.upper_signature);
+        EditText lowerSignature = findViewById(R.id.lower_signature);
 
         QuotedMessageMvpView quotedMessageMvpView = new QuotedMessageMvpView(this);
         quotedMessagePresenter = new QuotedMessagePresenter(this, quotedMessageMvpView, account);
@@ -542,7 +536,7 @@ public class MessageCompose extends K9Activity implements OnClickListener,
             CharSequence text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
             // Only use EXTRA_TEXT if the body hasn't already been set by the mailto URI
             if (text != null && messageContentView.getText().length() == 0) {
-                messageContentView.setCharacters(text);
+                messageContentView.setText(CrLfConverter.toLf(text));
             }
 
             String type = intent.getType();
@@ -586,13 +580,13 @@ public class MessageCompose extends K9Activity implements OnClickListener,
     @Override
     protected void onResume() {
         super.onResume();
-        MessagingController.getInstance(this).addListener(messagingListener);
+        messagingController.addListener(messagingListener);
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        MessagingController.getInstance(this).removeListener(messagingListener);
+        messagingController.removeListener(messagingListener);
 
         boolean isPausingOnConfigurationChange = (getChangingConfigurations() & ActivityInfo.CONFIG_ORIENTATION)
                 == ActivityInfo.CONFIG_ORIENTATION;
@@ -618,7 +612,9 @@ public class MessageCompose extends K9Activity implements OnClickListener,
         super.onSaveInstanceState(outState);
 
         outState.putBoolean(STATE_KEY_SOURCE_MESSAGE_PROCED, relatedMessageProcessed);
-        outState.putLong(STATE_KEY_DRAFT_ID, draftId);
+        if (draftMessageId != null) {
+            outState.putLong(STATE_KEY_DRAFT_ID, draftMessageId);
+        }
         outState.putParcelable(STATE_IDENTITY, identity);
         outState.putBoolean(STATE_IDENTITY_CHANGED, identityChanged);
         outState.putString(STATE_IN_REPLY_TO, repliedToMessageId);
@@ -652,7 +648,11 @@ public class MessageCompose extends K9Activity implements OnClickListener,
         quotedMessagePresenter.onRestoreInstanceState(savedInstanceState);
         attachmentPresenter.onRestoreInstanceState(savedInstanceState);
 
-        draftId = savedInstanceState.getLong(STATE_KEY_DRAFT_ID);
+        if (savedInstanceState.containsKey(STATE_KEY_DRAFT_ID)) {
+            draftMessageId = savedInstanceState.getLong(STATE_KEY_DRAFT_ID);
+        } else {
+            draftMessageId = null;
+        }
         identity = savedInstanceState.getParcelable(STATE_IDENTITY);
         identityChanged = savedInstanceState.getBoolean(STATE_IDENTITY_CHANGED);
         repliedToMessageId = savedInstanceState.getString(STATE_IN_REPLY_TO);
@@ -708,9 +708,9 @@ public class MessageCompose extends K9Activity implements OnClickListener,
                 .setRequestReadReceipt(requestReadReceipt)
                 .setIdentity(identity)
                 .setMessageFormat(currentMessageFormat)
-                .setText(messageContentView.getCharacters())
+                .setText(CrLfConverter.toCrLf(messageContentView.getText()))
                 .setAttachments(attachmentPresenter.getAttachments())
-                .setSignature(signatureView.getCharacters())
+                .setSignature(CrLfConverter.toCrLf(signatureView.getText()))
                 .setSignatureBeforeQuotedText(account.isSignatureBeforeQuotedText())
                 .setIdentityChanged(identityChanged)
                 .setSignatureChanged(signatureChanged)
@@ -787,9 +787,9 @@ public class MessageCompose extends K9Activity implements OnClickListener,
     }
 
     private void onDiscard() {
-        if (draftId != INVALID_DRAFT_ID) {
-            MessagingController.getInstance(getApplication()).deleteDraft(account, draftId);
-            draftId = INVALID_DRAFT_ID;
+        if (draftMessageId != null) {
+            messagingController.deleteDraft(account, draftMessageId);
+            draftMessageId = null;
         }
         internalMessageHandler.sendEmptyMessage(MSG_DISCARDED_DRAFT);
         changesMadeSinceLastSave = false;
@@ -866,12 +866,12 @@ public class MessageCompose extends K9Activity implements OnClickListener,
             }
 
             // test whether there is something to save
-            if (changesMadeSinceLastSave || (draftId != INVALID_DRAFT_ID)) {
-                final long previousDraftId = draftId;
+            if (changesMadeSinceLastSave || (draftMessageId != null)) {
+                final Long previousDraftId = draftMessageId;
                 final Account previousAccount = this.account;
 
                 // make current message appear as new
-                draftId = INVALID_DRAFT_ID;
+                draftMessageId = null;
 
                 // actual account switch
                 this.account = account;
@@ -879,11 +879,10 @@ public class MessageCompose extends K9Activity implements OnClickListener,
                 Timber.v("Account switch, saving new draft in new account");
                 checkToSaveDraftImplicitly();
 
-                if (previousDraftId != INVALID_DRAFT_ID) {
+                if (previousDraftId != null) {
                     Timber.v("Account switch, deleting draft from previous account: %d", previousDraftId);
 
-                    MessagingController.getInstance(getApplication()).deleteDraft(previousAccount,
-                            previousDraftId);
+                    messagingController.deleteDraft(previousAccount, previousDraftId);
                 }
             } else {
                 this.account = account;
@@ -918,7 +917,8 @@ public class MessageCompose extends K9Activity implements OnClickListener,
 
     private void updateSignature() {
         if (identity.getSignatureUse()) {
-            signatureView.setCharacters(identity.getSignature());
+            String signature = CrLfConverter.toLf(identity.getSignature());
+            signatureView.setText(signature);
             signatureView.setVisibility(View.VISIBLE);
         } else {
             signatureView.setVisibility(View.GONE);
@@ -1057,7 +1057,7 @@ public class MessageCompose extends K9Activity implements OnClickListener,
             }
         } else {
             // Check if editing an existing draft.
-            if (draftId == INVALID_DRAFT_ID) {
+            if (draftMessageId == null) {
                 onDiscard();
             } else {
                 if (navigateUp) {
@@ -1279,11 +1279,7 @@ public class MessageCompose extends K9Activity implements OnClickListener,
         quotedMessagePresenter.initFromReplyToMessage(messageViewInfo, action);
 
         if (action == Action.REPLY || action == Action.REPLY_ALL) {
-            Identity useIdentity = IdentityHelper.getRecipientIdentityFromMessage(account, message);
-            Identity defaultIdentity = account.getIdentity(0);
-            if (useIdentity != defaultIdentity) {
-                switchToIdentity(useIdentity);
-            }
+            setIdentityFromMessage(message);
         }
 
     }
@@ -1316,11 +1312,20 @@ public class MessageCompose extends K9Activity implements OnClickListener,
             quotedMessagePresenter.processMessageToForward(messageViewInfo);
             attachmentPresenter.processMessageToForward(messageViewInfo);
         }
+        setIdentityFromMessage(message);
+    }
+
+    private void setIdentityFromMessage(Message message) {
+        Identity useIdentity = IdentityHelper.getRecipientIdentityFromMessage(account, message);
+        Identity defaultIdentity = account.getIdentity(0);
+        if (useIdentity != defaultIdentity) {
+            switchToIdentity(useIdentity);
+        }
     }
 
     private void processDraftMessage(MessageViewInfo messageViewInfo) {
         Message message = messageViewInfo.message;
-        draftId = MessagingController.getInstance(getApplication()).getId(message);
+        draftMessageId = messagingController.getId(message);
         subjectView.setText(messageViewInfo.subject);
 
         recipientPresenter.initFromDraftMessage(message);
@@ -1387,8 +1392,7 @@ public class MessageCompose extends K9Activity implements OnClickListener,
 
             if (messageReference != null) {
                 // Check if this is a valid account in our database
-                Preferences prefs = Preferences.getPreferences(getApplicationContext());
-                Account account = prefs.getAccount(messageReference.getAccountUuid());
+                Account account = preferences.getAccount(messageReference.getAccountUuid());
                 if (account != null) {
                     relatedMessageReference = messageReference;
                 }
@@ -1404,7 +1408,8 @@ public class MessageCompose extends K9Activity implements OnClickListener,
     }
 
     static class SendMessageTask extends AsyncTask<Void, Void, Void> {
-        final Context context;
+        final MessagingController messagingController;
+        final Preferences preferences;
         final Account account;
         final Contacts contacts;
         final Message message;
@@ -1412,9 +1417,11 @@ public class MessageCompose extends K9Activity implements OnClickListener,
         final String plaintextSubject;
         final MessageReference messageReference;
 
-        SendMessageTask(Context context, Account account, Contacts contacts, Message message,
-                Long draftId, String plaintextSubject, MessageReference messageReference) {
-            this.context = context;
+        SendMessageTask(MessagingController messagingController, Preferences preferences, Account account,
+                Contacts contacts, Message message, Long draftId, String plaintextSubject,
+                MessageReference messageReference) {
+            this.messagingController = messagingController;
+            this.preferences = preferences;
             this.account = account;
             this.contacts = contacts;
             this.message = message;
@@ -1434,10 +1441,10 @@ public class MessageCompose extends K9Activity implements OnClickListener,
                 Timber.e(e, "Failed to mark contact as contacted.");
             }
 
-            MessagingController.getInstance(context).sendMessage(account, message, plaintextSubject, null);
+            messagingController.sendMessage(account, message, plaintextSubject, null);
             if (draftId != null) {
                 // TODO set draft id to invalid in MessageCompose!
-                MessagingController.getInstance(context).deleteDraft(account, draftId);
+                messagingController.deleteDraft(account, draftId);
             }
 
             return null;
@@ -1449,14 +1456,13 @@ public class MessageCompose extends K9Activity implements OnClickListener,
         private void updateReferencedMessage() {
             if (messageReference != null && messageReference.getFlag() != null) {
                 String accountUuid = messageReference.getAccountUuid();
-                Account account = Preferences.getPreferences(context).getAccount(accountUuid);
+                Account account = preferences.getAccount(accountUuid);
                 long folderId = messageReference.getFolderId();
                 String sourceMessageUid = messageReference.getUid();
                 Flag flag = messageReference.getFlag();
 
                 Timber.d("Setting referenced message (%d, %s) flag to %s", folderId, sourceMessageUid, flag);
 
-                MessagingController messagingController = MessagingController.getInstance(context);
                 messagingController.setFlag(account, folderId, sourceMessageUid, flag, true);
             }
         }
@@ -1479,7 +1485,7 @@ public class MessageCompose extends K9Activity implements OnClickListener,
 
         String body = mailTo.getBody();
         if (body != null && !body.isEmpty()) {
-            messageContentView.setCharacters(body);
+            messageContentView.setText(CrLfConverter.toLf(body));
         }
     }
 
@@ -1532,12 +1538,8 @@ public class MessageCompose extends K9Activity implements OnClickListener,
             changesMadeSinceLastSave = false;
             currentMessageBuilder = null;
 
-            if (action == Action.EDIT_DRAFT && relatedMessageReference != null) {
-                message.setUid(relatedMessageReference.getUid());
-            }
-
-            new SaveMessageTask(getApplicationContext(), account, contacts, internalMessageHandler,
-                    message, draftId, plaintextSubject, true).execute();
+            new SaveMessageTask(messagingController, account, internalMessageHandler, message, draftMessageId,
+                    plaintextSubject).execute();
             if (finishAfterDraftSaved) {
                 finish();
             } else {
@@ -1545,8 +1547,8 @@ public class MessageCompose extends K9Activity implements OnClickListener,
             }
         } else {
             currentMessageBuilder = null;
-            new SendMessageTask(getApplicationContext(), account, contacts, message,
-                    draftId != INVALID_DRAFT_ID ? draftId : null, plaintextSubject, relatedMessageReference).execute();
+            new SendMessageTask(messagingController, preferences, account, contacts, message,
+                    draftMessageId, plaintextSubject, relatedMessageReference).execute();
             finish();
         }
     }
@@ -1789,7 +1791,7 @@ public class MessageCompose extends K9Activity implements OnClickListener,
             View progressBar = view.findViewById(R.id.progressBar);
             boolean isLoadingComplete = (attachment.state == Attachment.LoadingState.COMPLETE);
             if (isLoadingComplete) {
-                if (MimeUtility.isSupportedImageType(attachment.contentType)) {
+                if (attachment.isSupportedImage()) {
                     ImageView attachmentTypeView = view.findViewById(R.id.attachment_type);
                     attachmentTypeView.setImageResource(R.drawable.ic_attachment_image);
 
@@ -1852,7 +1854,7 @@ public class MessageCompose extends K9Activity implements OnClickListener,
                     setProgressBarIndeterminateVisibility(false);
                     break;
                 case MSG_SAVED_DRAFT:
-                    draftId = (Long) msg.obj;
+                    draftMessageId = (Long) msg.obj;
                     Toast.makeText(
                             MessageCompose.this,
                             getString(R.string.message_saved_toast),

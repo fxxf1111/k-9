@@ -2,7 +2,6 @@ package com.fsck.k9.mail
 
 import com.fsck.k9.mail.internet.BinaryTempFileBody
 import com.fsck.k9.mail.internet.BinaryTempFileMessageBody
-import com.fsck.k9.mail.internet.CharsetSupport
 import com.fsck.k9.mail.internet.MimeBodyPart
 import com.fsck.k9.mail.internet.MimeHeader
 import com.fsck.k9.mail.internet.MimeMessage
@@ -67,7 +66,8 @@ class MessageTest {
 
         message.writeTo(out)
 
-        assertThat(out.toString()).isEqualTo("""
+        assertThat(out.toString()).isEqualTo(
+            """
             From: from@example.com
             To: to@example.com
             Subject: Test Message
@@ -78,9 +78,9 @@ class MessageTest {
             Content-Transfer-Encoding: 7bit
 
             ------Boundary103
-            Content-Transfer-Encoding: quoted-printable
             Content-Type: text/plain;
              charset=utf-8
+            Content-Transfer-Encoding: quoted-printable
 
             Testing=2E
             This is a text body with some greek characters=2E
@@ -108,9 +108,9 @@ class MessageTest {
             Content-Transfer-Encoding: 7bit
 
             ------Boundary102
-            Content-Transfer-Encoding: quoted-printable
             Content-Type: text/plain;
              charset=utf-8
+            Content-Transfer-Encoding: quoted-printable
 
             Testing=2E
             This is a text body with some greek characters=2E
@@ -138,9 +138,9 @@ class MessageTest {
             Content-Transfer-Encoding: 7bit
 
             ------Boundary101
-            Content-Transfer-Encoding: quoted-printable
             Content-Type: text/plain;
              charset=utf-8
+            Content-Transfer-Encoding: quoted-printable
 
             Testing=2E
             This is a text body with some greek characters=2E
@@ -159,7 +159,8 @@ class MessageTest {
 
             ------Boundary103--
 
-            """.trimIndent().crlf())
+            """.trimIndent().crlf()
+        )
     }
 
     @Test
@@ -171,15 +172,16 @@ class MessageTest {
 
         bodyPart.writeTo(out)
 
-        assertThat(out.toString()).isEqualTo("""
+        assertThat(out.toString()).isEqualTo(
+            """
             Content-Type: multipart/mixed;
              boundary=----Boundary103
             Content-Transfer-Encoding: 7bit
 
             ------Boundary103
-            Content-Transfer-Encoding: quoted-printable
             Content-Type: text/plain;
              charset=utf-8
+            Content-Transfer-Encoding: quoted-printable
 
             Testing=2E
             This is a text body with some greek characters=2E
@@ -207,9 +209,9 @@ class MessageTest {
             Content-Transfer-Encoding: 7bit
 
             ------Boundary102
-            Content-Transfer-Encoding: quoted-printable
             Content-Type: text/plain;
              charset=utf-8
+            Content-Transfer-Encoding: quoted-printable
 
             Testing=2E
             This is a text body with some greek characters=2E
@@ -237,9 +239,9 @@ class MessageTest {
             Content-Transfer-Encoding: 7bit
 
             ------Boundary101
-            Content-Transfer-Encoding: quoted-printable
             Content-Type: text/plain;
              charset=utf-8
+            Content-Transfer-Encoding: quoted-printable
 
             Testing=2E
             This is a text body with some greek characters=2E
@@ -258,7 +260,8 @@ class MessageTest {
 
             ------Boundary103--
 
-            """.trimIndent().crlf())
+            """.trimIndent().crlf()
+        )
     }
 
     private fun sampleMessage(): MimeMessage {
@@ -308,20 +311,18 @@ class MessageTest {
     }
 
     private fun textBodyPart(): MimeBodyPart {
-        val textBody = TextBody("""
+        val textBody = TextBody(
+            """
             Testing.
             This is a text body with some greek characters.
             αβγδεζηθ
             End of test.
 
             """.trimIndent().crlf()
-        ).apply {
-            setCharset("utf-8")
-        }
+        )
 
         return MimeBodyPart().apply {
             MimeMessageHelper.setBody(this, textBody)
-            CharsetSupport.setCharset("utf-8", this)
         }
     }
 

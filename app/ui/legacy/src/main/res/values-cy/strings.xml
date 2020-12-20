@@ -93,6 +93,7 @@ Plîs rho wybod am unrhyw wallau, syniadau am nodweddion newydd, neu ofyn cwesti
   <string name="forward_as_attachment_action">Anfon ymlaen fel atodiad</string>
   <string name="edit_as_new_message_action">Golygu fel neges newydd</string>
   <string name="move_action">Symud</string>
+  <string name="move_to_drafts_action">Symud i Ddrafftiau</string>
   <string name="single_message_options_action">Anfon…</string>
   <string name="refile_action">Ail ffeilio…</string>
   <string name="done_action">Wedi gwneud</string>
@@ -900,7 +901,6 @@ Plîs rho wybod am unrhyw wallau, syniadau am nodweddion newydd, neu ofyn cwesti
   <string name="recipient_bcc">Bcc</string>
   <string name="recipient_to">At</string>
   <string name="recipient_from">Oddi wrth</string>
-  <string name="unknown_recipient"><![CDATA[<Unknown Recipient>]]></string>
   <string name="address_type_home">Cartref</string>
   <string name="address_type_work">Gwaith</string>
   <string name="address_type_other">Arall</string>

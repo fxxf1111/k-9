@@ -2,10 +2,7 @@ package com.fsck.k9.view;
 
 
 import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import android.content.Context;
 import android.graphics.Typeface;
@@ -41,6 +38,7 @@ import com.fsck.k9.helper.Contacts;
 import com.fsck.k9.helper.MessageHelper;
 import com.fsck.k9.mail.Address;
 import com.fsck.k9.mail.Flag;
+import com.fsck.k9.mail.Header;
 import com.fsck.k9.mail.Message;
 import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.ui.ContactBadge;
@@ -50,6 +48,8 @@ import timber.log.Timber;
 
 
 public class MessageHeader extends LinearLayout implements OnClickListener, OnLongClickListener {
+    private static final int DEFAULT_SUBJECT_LINES = 3;
+
     private final ClipboardManager clipboardManager = DI.get(ClipboardManager.class);
 
     private Context mContext;
@@ -85,19 +85,6 @@ public class MessageHeader extends LinearLayout implements OnClickListener, OnLo
     private OnCryptoClickListener onCryptoClickListener;
     private OnMenuItemClickListener onMenuItemClickListener;
 
-    /**
-     * Pair class is only available since API Level 5, so we need
-     * this helper class unfortunately
-     */
-    private static class HeaderEntry {
-        public String label;
-        public String value;
-
-        public HeaderEntry(String label, String value) {
-            this.label = label;
-            this.value = value;
-        }
-    }
 
     public MessageHeader(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -145,6 +132,7 @@ public class MessageHeader extends LinearLayout implements OnClickListener, OnLo
 
         singleMessageOptionIcon.setOnClickListener(this);
 
+        mSubjectView.setOnClickListener(this);
         mFromView.setOnClickListener(this);
         mToView.setOnClickListener(this);
         mCcView.setOnClickListener(this);
@@ -166,7 +154,9 @@ public class MessageHeader extends LinearLayout implements OnClickListener, OnLo
     @Override
     public void onClick(View view) {
         int id = view.getId();
-        if (id == R.id.from) {
+        if (id == R.id.subject) {
+            toggleSubjectViewMaxLines();
+        } else if (id == R.id.from) {
             onAddSenderToContacts();
         } else if (id == R.id.to || id == R.id.cc || id == R.id.bcc) {
             expand((TextView)view, ((TextView)view).getEllipsize() != null);
@@ -192,6 +182,14 @@ public class MessageHeader extends LinearLayout implements OnClickListener, OnLo
         }
 
         return true;
+    }
+
+    private void toggleSubjectViewMaxLines() {
+        if (mSubjectView.getMaxLines() == DEFAULT_SUBJECT_LINES) {
+            mSubjectView.setMaxLines(Integer.MAX_VALUE);
+        } else {
+            mSubjectView.setMaxLines(DEFAULT_SUBJECT_LINES);
+        }
     }
 
     private void onAddSenderToContacts() {
@@ -248,7 +246,7 @@ public class MessageHeader extends LinearLayout implements OnClickListener, OnLo
         Integer messageToShow = null;
         try {
             // Retrieve additional headers
-            List<HeaderEntry> additionalHeaders = getAdditionalHeaders(mMessage);
+            List<Header> additionalHeaders = mMessage.getHeaders();
             if (!additionalHeaders.isEmpty()) {
                 // Show the additional headers that we have got.
                 populateAdditionalHeadersView(additionalHeaders);
@@ -269,28 +267,18 @@ public class MessageHeader extends LinearLayout implements OnClickListener, OnLo
 
     }
 
-    public void populate(final Message message, final Account account) {
+    public void populate(final Message message, final Account account, boolean showStar) {
+        Address fromAddress = null;
+        Address[] fromAddresses = message.getFrom();
+        if (fromAddresses.length > 0) {
+            fromAddress = fromAddresses[0];
+        }
+
         final Contacts contacts = K9.isShowContactName() ? mContacts : null;
-        final CharSequence from = MessageHelper.toFriendly(message.getFrom(), contacts);
+        final CharSequence from = mMessageHelper.getSenderDisplayName(fromAddress);
         final CharSequence to = MessageHelper.toFriendly(message.getRecipients(Message.RecipientType.TO), contacts);
         final CharSequence cc = MessageHelper.toFriendly(message.getRecipients(Message.RecipientType.CC), contacts);
         final CharSequence bcc = MessageHelper.toFriendly(message.getRecipients(Message.RecipientType.BCC), contacts);
-
-        Address[] fromAddrs = message.getFrom();
-        Address[] toAddrs = message.getRecipients(Message.RecipientType.TO);
-        Address[] ccAddrs = message.getRecipients(Message.RecipientType.CC);
-        boolean fromMe = mMessageHelper.toMe(account, fromAddrs);
-
-        Address counterpartyAddress = null;
-        if (fromMe) {
-            if (toAddrs.length > 0) {
-                counterpartyAddress = toAddrs[0];
-            } else if (ccAddrs.length > 0) {
-                counterpartyAddress = ccAddrs[0];
-            }
-        } else if (fromAddrs.length > 0) {
-            counterpartyAddress = fromAddrs[0];
-        }
 
         mMessage = message;
         mAccount = account;
@@ -320,9 +308,9 @@ public class MessageHeader extends LinearLayout implements OnClickListener, OnLo
         mDateView.setText(dateTime);
 
         if (K9.isShowContactPicture()) {
-            if (counterpartyAddress != null) {
-                mContactBadge.setContact(counterpartyAddress);
-                mContactsPictureLoader.setContactPicture(mContactBadge, counterpartyAddress);
+            if (fromAddress != null) {
+                mContactBadge.setContact(fromAddress);
+                mContactsPictureLoader.setContactPicture(mContactBadge, fromAddress);
             } else {
                 mContactBadge.setImageResource(R.drawable.ic_contact_picture);
             }
@@ -335,7 +323,13 @@ public class MessageHeader extends LinearLayout implements OnClickListener, OnLo
         updateAddressField(mBccView, bcc, mBccLabel);
         mAnsweredIcon.setVisibility(message.isSet(Flag.ANSWERED) ? View.VISIBLE : View.GONE);
         mForwardedIcon.setVisibility(message.isSet(Flag.FORWARDED) ? View.VISIBLE : View.GONE);
-        mFlagged.setChecked(message.isSet(Flag.FLAGGED));
+
+        if (showStar) {
+            mFlagged.setVisibility(View.VISIBLE);
+            mFlagged.setChecked(message.isSet(Flag.FLAGGED));
+        } else {
+            mFlagged.setVisibility(View.GONE);
+        }
 
         mChip.setBackgroundColor(mAccount.getChipColor());
 
@@ -422,19 +416,6 @@ public class MessageHeader extends LinearLayout implements OnClickListener, OnLo
        }
     }
 
-    private List<HeaderEntry> getAdditionalHeaders(final Message message) {
-        List<HeaderEntry> additionalHeaders = new LinkedList<>();
-
-        Set<String> headerNames = new LinkedHashSet<>(message.getHeaderNames());
-        for (String headerName : headerNames) {
-            String[] headerValues = message.getHeader(headerName);
-            for (String headerValue : headerValues) {
-                additionalHeaders.add(new HeaderEntry(headerName, headerValue));
-            }
-        }
-        return additionalHeaders;
-    }
-
     /**
      * Set up the additional headers text view with the supplied header data.
      *
@@ -445,20 +426,20 @@ public class MessageHeader extends LinearLayout implements OnClickListener, OnLo
      *                          This method is always called from within the UI thread by
      *                          {@link #showAdditionalHeaders()}.
      */
-    private void populateAdditionalHeadersView(final List<HeaderEntry> additionalHeaders) {
+    private void populateAdditionalHeadersView(final List<Header> additionalHeaders) {
         SpannableStringBuilder sb = new SpannableStringBuilder();
         boolean first = true;
-        for (HeaderEntry additionalHeader : additionalHeaders) {
+        for (Header additionalHeader : additionalHeaders) {
             if (!first) {
                 sb.append("\n");
             } else {
                 first = false;
             }
             StyleSpan boldSpan = new StyleSpan(Typeface.BOLD);
-            SpannableString label = new SpannableString(additionalHeader.label + ": ");
+            SpannableString label = new SpannableString(additionalHeader.getName() + ": ");
             label.setSpan(boldSpan, 0, label.length(), 0);
             sb.append(label);
-            sb.append(MimeUtility.unfoldAndDecode(additionalHeader.value));
+            sb.append(MimeUtility.unfoldAndDecode(additionalHeader.getValue()));
         }
         mAdditionalHeadersView.setText(sb);
     }

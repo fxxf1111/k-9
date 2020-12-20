@@ -2,6 +2,7 @@ package com.fsck.k9.ui.messageview;
 
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 import android.app.Activity;
@@ -15,6 +16,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
 import android.os.SystemClock;
+
+import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -52,6 +55,7 @@ import com.fsck.k9.ui.base.ThemeManager;
 import com.fsck.k9.ui.messageview.CryptoInfoDialog.OnClickShowCryptoKeyListener;
 import com.fsck.k9.ui.messageview.MessageCryptoPresenter.MessageCryptoMvpView;
 import com.fsck.k9.ui.settings.account.AccountSettingsActivity;
+import com.fsck.k9.ui.share.ShareIntentBuilder;
 import com.fsck.k9.view.MessageCryptoDisplayStatus;
 import timber.log.Timber;
 
@@ -275,7 +279,8 @@ public class MessageViewFragment extends Fragment implements ConfirmationDialogF
     }
 
     private void displayHeaderForLoadingMessage(LocalMessage message) {
-        mMessageView.setHeaders(message, mAccount);
+        boolean showStar = !isOutbox();
+        mMessageView.setHeaders(message, mAccount, showStar);
         if (mAccount.isOpenPgpProviderConfigured()) {
             mMessageView.getMessageHeaderView().setCryptoStatusLoading();
         }
@@ -377,11 +382,11 @@ public class MessageViewFragment extends Fragment implements ConfirmationDialogF
     }
 
     public void onToggleFlagged() {
-        if (mMessage != null) {
+        if (mMessage != null && !isOutbox()) {
             boolean newState = !mMessage.isSet(Flag.FLAGGED);
             mController.setFlag(mAccount, mMessage.getFolder().getDatabaseId(),
                     Collections.singletonList(mMessage), Flag.FLAGGED, newState);
-            mMessageView.setHeaders(mMessage, mAccount);
+            mMessageView.setHeaders(mMessage, mAccount, true);
         }
     }
 
@@ -412,6 +417,16 @@ public class MessageViewFragment extends Fragment implements ConfirmationDialogF
         }
 
         startRefileActivity(ACTIVITY_CHOOSE_FOLDER_COPY);
+    }
+
+    public void onMoveToDrafts() {
+        Account account = mAccount;
+        long folderId = mMessageReference.getFolderId();
+        List<MessageReference> messages = Collections.singletonList(mMessageReference);
+
+        mFragmentListener.showNextMessageOrReturn();
+
+        mController.moveToDraftsFolder(account, folderId, messages);
     }
 
     public void onArchive() {
@@ -491,15 +506,22 @@ public class MessageViewFragment extends Fragment implements ConfirmationDialogF
 
     public void onSendAlternate() {
         if (mMessage != null) {
-            mController.sendAlternate(getActivity(), mAccount, mMessage);
+            ShareIntentBuilder shareIntentBuilder = DI.get(ShareIntentBuilder.class);
+            Intent shareIntent = shareIntentBuilder.createShareIntent(mMessage);
+
+            String shareTitle = getString(R.string.send_alternate_chooser_title);
+            Intent chooserIntent = Intent.createChooser(shareIntent, shareTitle);
+
+            startActivity(chooserIntent);
         }
     }
 
     public void onToggleRead() {
-        if (mMessage != null) {
+        if (mMessage != null && !isOutbox()) {
             mController.setFlag(mAccount, mMessage.getFolder().getDatabaseId(),
                     Collections.singletonList(mMessage), Flag.SEEN, !mMessage.isSet(Flag.SEEN));
-            mMessageView.setHeaders(mMessage, mAccount);
+
+            mMessageView.setHeaders(mMessage, mAccount, true);
             mFragmentListener.updateMenu();
         }
     }
@@ -602,16 +624,26 @@ public class MessageViewFragment extends Fragment implements ConfirmationDialogF
         return mMessageReference;
     }
 
+    public boolean isOutbox() {
+        if (mMessage == null || mAccount == null) {
+            return false;
+        }
+
+        long folderId = mMessage.getFolder().getDatabaseId();
+        Long outboxFolderId = mAccount.getOutboxFolderId();
+        return outboxFolderId != null && outboxFolderId == folderId;
+    }
+
     public boolean isMessageRead() {
         return (mMessage != null) && mMessage.isSet(Flag.SEEN);
     }
 
     public boolean isCopyCapable() {
-        return mController.isCopyCapable(mAccount);
+        return !isOutbox() && mController.isCopyCapable(mAccount);
     }
 
     public boolean isMoveCapable() {
-        return mController.isMoveCapable(mAccount);
+        return !isOutbox() && mController.isMoveCapable(mAccount);
     }
 
     public boolean canMessageBeArchived() {
@@ -721,12 +753,12 @@ public class MessageViewFragment extends Fragment implements ConfirmationDialogF
     }
 
     public interface MessageViewFragmentListener {
-        void onForward(MessageReference messageReference, Parcelable decryptionResultForReply);
-        void onForwardAsAttachment(MessageReference messageReference, Parcelable decryptionResultForReply);
+        void onForward(MessageReference messageReference, @Nullable Parcelable decryptionResultForReply);
+        void onForwardAsAttachment(MessageReference messageReference, @Nullable Parcelable decryptionResultForReply);
         void onEditAsNewMessage(MessageReference messageReference);
         void disableDeleteAction();
-        void onReplyAll(MessageReference messageReference, Parcelable decryptionResultForReply);
-        void onReply(MessageReference messageReference, Parcelable decryptionResultForReply);
+        void onReplyAll(MessageReference messageReference, @Nullable Parcelable decryptionResultForReply);
+        void onReply(MessageReference messageReference, @Nullable Parcelable decryptionResultForReply);
         void setProgress(boolean b);
         void showNextMessageOrReturn();
         void updateMenu();

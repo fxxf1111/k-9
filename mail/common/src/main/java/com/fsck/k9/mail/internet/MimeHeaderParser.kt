@@ -9,7 +9,7 @@ class MimeHeaderParser(private val input: String) {
     fun readHeaderValue(): String {
         return buildString {
             var whitespace = false
-            loop@while (!endReached()) {
+            loop@ while (!endReached()) {
                 val character = peek()
                 when {
                     character == ';' -> break@loop
@@ -148,8 +148,10 @@ class MimeHeaderParser(private val input: String) {
                 character.isVChar() -> Unit
                 else -> {
                     currentIndex--
-                    throw MimeHeaderParserException("Unexpected '$character' (${character.toInt()}) in comment",
-                            errorIndex = currentIndex)
+                    throw MimeHeaderParserException(
+                        "Unexpected '$character' (${character.toInt()}) in comment",
+                        errorIndex = currentIndex
+                    )
                 }
             }
         }
@@ -183,4 +185,4 @@ class MimeHeaderParser(private val input: String) {
     }
 }
 
-class MimeHeaderParserException(message: String, val errorIndex: Int) : RuntimeException(message)
+class MimeHeaderParserException(message: String, val errorIndex: Int = -1) : RuntimeException(message)

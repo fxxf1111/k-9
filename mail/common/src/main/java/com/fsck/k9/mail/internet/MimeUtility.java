@@ -914,11 +914,6 @@ public class MimeUtility {
         return decode(unfold(s), message);
     }
 
-    // TODO implement proper foldAndEncode
-    public static String foldAndEncode(String s) {
-        return s;
-    }
-
     /**
      * Returns the named parameter of a header field.
      *
@@ -1135,5 +1130,10 @@ public class MimeUtility {
     public static boolean isSupportedImageType(String mimeType) {
         return isSameMimeType(mimeType, "image/jpeg") || isSameMimeType(mimeType, "image/png") ||
                 isSameMimeType(mimeType, "image/gif") || isSameMimeType(mimeType, "image/webp");
+    }
+
+    public static boolean isSupportedImageExtension(String filename) {
+        String mimeType = getMimeTypeByExtension(filename);
+        return isSupportedImageType(mimeType);
     }
 }

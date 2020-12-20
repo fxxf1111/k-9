@@ -1,10 +1,14 @@
 package com.fsck.k9.ui.messagelist
 
+import android.annotation.SuppressLint
 import android.content.ContentResolver
 import android.database.Cursor
+import android.database.MatrixCursor
+import android.database.sqlite.SQLiteException
 import android.net.Uri
 import com.fsck.k9.Account
 import com.fsck.k9.Account.SortType
+import com.fsck.k9.K9
 import com.fsck.k9.Preferences
 import com.fsck.k9.fragment.MLFProjectionInfo
 import com.fsck.k9.fragment.MessageListFragmentComparators.ArrivalComparator
@@ -26,6 +30,7 @@ import com.fsck.k9.search.SqlQueryBuilder
 import com.fsck.k9.search.getAccounts
 import java.util.ArrayList
 import java.util.Comparator
+import timber.log.Timber
 
 class MessageListLoader(
     private val preferences: Preferences,
@@ -40,14 +45,19 @@ class MessageListLoader(
             .mapNotNull { loadMessageListForAccount(it, config) }
             .toTypedArray()
 
+        if (cursors.isEmpty()) {
+            Timber.w("Couldn't get message list")
+            return MessageListInfo(messageListItems = emptyList(), hasMoreMessages = false)
+        }
+
         val cursor: Cursor
         val uniqueIdColumn: Int
-        if (cursors.size > 1) {
-            cursor = MergeCursorWithUniqueId(cursors, getComparator(config))
-            uniqueIdColumn = cursor.getColumnIndex("_id")
-        } else {
+        if (cursors.size == 1) {
             cursor = cursors[0]
             uniqueIdColumn = MLFProjectionInfo.ID_COLUMN
+        } else {
+            cursor = MergeCursorWithUniqueId(cursors, getComparator(config))
+            uniqueIdColumn = cursor.getColumnIndex("_id")
         }
 
         val messageListItems = cursor.use {
@@ -62,6 +72,7 @@ class MessageListLoader(
         return MessageListInfo(messageListItems, hasMoreMessages)
     }
 
+    @SuppressLint("Recycle")
     private fun loadMessageListForAccount(account: Account, config: MessageListConfig): Cursor? {
         val accountUuid = account.uuid
         val threadId: String? = getThreadId(config.search)
@@ -110,7 +121,17 @@ class MessageListLoader(
 
         val sortOrder: String = buildSortOrder(config)
 
-        return contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
+        return try {
+            contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
+        } catch (e: SQLiteException) {
+            Timber.e(e, "Error querying EmailProvider")
+
+            if (K9.DEVELOPER_MODE && e.message?.contains("malformed MATCH expression") == false) {
+                throw e
+            }
+
+            return MatrixCursor(projection)
+        }
     }
 
     private fun getThreadId(search: LocalSearch): String? {

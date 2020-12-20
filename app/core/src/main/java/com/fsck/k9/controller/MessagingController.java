@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
 import android.os.PowerManager;
 import android.os.Process;
 import android.os.SystemClock;
@@ -33,10 +32,8 @@ import androidx.annotation.VisibleForTesting;
 import com.fsck.k9.Account;
 import com.fsck.k9.Account.DeletePolicy;
 import com.fsck.k9.Account.Expunge;
-import com.fsck.k9.CoreResourceProvider;
 import com.fsck.k9.DI;
 import com.fsck.k9.K9;
-import com.fsck.k9.K9.Intents;
 import com.fsck.k9.Preferences;
 import com.fsck.k9.backend.BackendManager;
 import com.fsck.k9.backend.api.Backend;
@@ -53,10 +50,10 @@ import com.fsck.k9.controller.MessagingControllerCommands.PendingExpunge;
 import com.fsck.k9.controller.MessagingControllerCommands.PendingMarkAllAsRead;
 import com.fsck.k9.controller.MessagingControllerCommands.PendingMoveAndMarkAsRead;
 import com.fsck.k9.controller.MessagingControllerCommands.PendingMoveOrCopy;
+import com.fsck.k9.controller.MessagingControllerCommands.PendingReplace;
 import com.fsck.k9.controller.MessagingControllerCommands.PendingSetFlag;
 import com.fsck.k9.controller.ProgressBodyFactory.ProgressListener;
 import com.fsck.k9.helper.MutableBoolean;
-import com.fsck.k9.mail.Address;
 import com.fsck.k9.mail.AuthenticationFailedException;
 import com.fsck.k9.mail.CertificateValidationException;
 import com.fsck.k9.mail.FetchProfile;
@@ -64,16 +61,15 @@ import com.fsck.k9.mail.FetchProfile.Item;
 import com.fsck.k9.mail.Flag;
 import com.fsck.k9.mail.FolderClass;
 import com.fsck.k9.mail.Message;
-import com.fsck.k9.mail.Message.RecipientType;
 import com.fsck.k9.mail.MessageRetrievalListener;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Part;
-import com.fsck.k9.mail.internet.MessageExtractor;
-import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mailstore.LocalFolder;
 import com.fsck.k9.mailstore.LocalMessage;
 import com.fsck.k9.mailstore.LocalStore;
 import com.fsck.k9.mailstore.LocalStoreProvider;
+import com.fsck.k9.mailstore.MessageStore;
+import com.fsck.k9.mailstore.MessageStoreProvider;
 import com.fsck.k9.mailstore.OutboxState;
 import com.fsck.k9.mailstore.OutboxStateRepository;
 import com.fsck.k9.mailstore.SendState;
@@ -109,8 +105,6 @@ import static com.fsck.k9.search.LocalSearchExtensions.getAccountsFromLocalSearc
  */
 @SuppressWarnings("unchecked") // TODO change architecture to actually work with generics
 public class MessagingController {
-    public static final long INVALID_MESSAGE_ID = -1;
-
     public static final Set<Flag> SYNC_FLAGS = EnumSet.of(Flag.SEEN, Flag.FLAGGED, Flag.ANSWERED, Flag.FORWARDED);
 
     private static final long FOLDER_LIST_STALENESS_THRESHOLD = 30 * 60 * 1000L;
@@ -121,6 +115,7 @@ public class MessagingController {
     private final LocalStoreProvider localStoreProvider;
     private final BackendManager backendManager;
     private final Preferences preferences;
+    private final MessageStoreProvider messageStoreProvider;
 
     private final Thread controllerThread;
 
@@ -129,7 +124,7 @@ public class MessagingController {
     private final ExecutorService threadPool = Executors.newCachedThreadPool();
     private final MemorizingMessagingListener memorizingMessagingListener = new MemorizingMessagingListener();
     private final UnreadMessageCountProvider unreadMessageCountProvider;
-    private final CoreResourceProvider resourceProvider;
+    private final DraftOperations draftOperations;
 
 
     private MessagingListener checkMailListener = null;
@@ -143,16 +138,17 @@ public class MessagingController {
 
     MessagingController(Context context, NotificationController notificationController,
             NotificationStrategy notificationStrategy, LocalStoreProvider localStoreProvider,
-            UnreadMessageCountProvider unreadMessageCountProvider, CoreResourceProvider resourceProvider,
-            BackendManager backendManager, Preferences preferences, List<ControllerExtension> controllerExtensions) {
+            UnreadMessageCountProvider unreadMessageCountProvider, BackendManager backendManager,
+            Preferences preferences, MessageStoreProvider messageStoreProvider,
+            List<ControllerExtension> controllerExtensions) {
         this.context = context;
         this.notificationController = notificationController;
         this.notificationStrategy = notificationStrategy;
         this.localStoreProvider = localStoreProvider;
         this.unreadMessageCountProvider = unreadMessageCountProvider;
-        this.resourceProvider = resourceProvider;
         this.backendManager = backendManager;
         this.preferences = preferences;
+        this.messageStoreProvider = messageStoreProvider;
 
         controllerThread = new Thread(new Runnable() {
             @Override
@@ -165,6 +161,8 @@ public class MessagingController {
         addListener(memorizingMessagingListener);
 
         initializeControllerExtensions(controllerExtensions);
+
+        draftOperations = new DraftOperations(this);
     }
 
     private void initializeControllerExtensions(List<ControllerExtension> controllerExtensions) {
@@ -268,11 +266,11 @@ public class MessagingController {
         throw new Error(e);
     }
 
-    private Backend getBackend(Account account) {
+    Backend getBackend(Account account) {
         return backendManager.getBackend(account);
     }
 
-    private LocalStore getLocalStoreOrThrow(Account account) {
+    LocalStore getLocalStoreOrThrow(Account account) {
         try {
             return localStoreProvider.getInstance(account);
         } catch (MessagingException e) {
@@ -689,7 +687,7 @@ public class MessagingController {
         notificationController.showAuthenticationErrorNotification(account, incoming);
     }
 
-    private void queuePendingCommand(Account account, PendingCommand command) {
+    void queuePendingCommand(Account account, PendingCommand command) {
         try {
             LocalStore localStore = localStoreProvider.getInstance(account);
             localStore.addPendingCommand(command);
@@ -698,7 +696,7 @@ public class MessagingController {
         }
     }
 
-    private void processPendingCommands(final Account account) {
+    void processPendingCommands(final Account account) {
         putBackground("processPendingCommands", null, new Runnable() {
             @Override
             public void run() {
@@ -728,7 +726,8 @@ public class MessagingController {
         try {
             for (PendingCommand command : commands) {
                 processingCommand = command;
-                Timber.d("Processing pending command '%s'", command);
+                String commandName = command.getCommandName();
+                Timber.d("Processing pending command '%s'", commandName);
 
                 /*
                  * We specifically do not catch any exceptions here. If a command fails it is
@@ -740,16 +739,16 @@ public class MessagingController {
 
                     localStore.removePendingCommand(command);
 
-                    Timber.d("Done processing pending command '%s'", command);
+                    Timber.d("Done processing pending command '%s'", commandName);
                 } catch (MessagingException me) {
                     if (me.isPermanentFailure()) {
-                        Timber.e("Failure of command '%s' was permanent, removing command from queue", command);
+                        Timber.e(me, "Failure of command '%s' was permanent, removing command from queue", commandName);
                         localStore.removePendingCommand(processingCommand);
                     } else {
                         throw me;
                     }
                 } catch (Exception e) {
-                    Timber.e("Unexpected exception with command '%s', removing command from queue", command);
+                    Timber.e(e, "Unexpected exception with command '%s', removing command from queue", commandName);
                     localStore.removePendingCommand(processingCommand);
 
                     if (K9.DEVELOPER_MODE) {
@@ -844,6 +843,10 @@ public class MessagingController {
                 l.messageUidChanged(account, folderId, oldUid, localMessage.getUid());
             }
         }
+    }
+
+    void processPendingReplace(PendingReplace pendingReplace, Account account) {
+        draftOperations.processPendingReplace(pendingReplace, account);
     }
 
     private void queueMoveOrCopy(Account account, long srcFolderId, long destFolderId, MoveOrCopyFlavor operation,
@@ -957,7 +960,7 @@ public class MessagingController {
         }
     }
 
-    private void destroyPlaceholderMessages(LocalFolder localFolder, List<String> uids) throws MessagingException {
+    void destroyPlaceholderMessages(LocalFolder localFolder, List<String> uids) throws MessagingException {
         for (String uid : uids) {
             LocalMessage placeholderMessage = localFolder.getMessage(uid);
             if (placeholderMessage == null) {
@@ -1380,6 +1383,7 @@ public class MessagingController {
             LocalStore localStore = localStoreProvider.getInstance(account);
             LocalFolder localFolder = localStore.getFolder(account.getOutboxFolderId());
             localFolder.open();
+            message.setFlag(Flag.SEEN, true);
             localFolder.appendMessages(Collections.singletonList(message));
             LocalMessage localMessage = localFolder.getMessage(message.getUid());
             long messageId = localMessage.getDatabaseId();
@@ -1551,7 +1555,7 @@ public class MessagingController {
                         for (MessagingListener l : getListeners()) {
                             l.synchronizeMailboxProgress(account, outboxFolderId, progress, todo);
                         }
-                        moveOrDeleteSentMessage(account, localStore, localFolder, message);
+                        moveOrDeleteSentMessage(account, localStore, message);
 
                         outboxStateRepository.removeOutboxState(messageId);
                     } catch (AuthenticationFailedException e) {
@@ -1613,8 +1617,8 @@ public class MessagingController {
         }
     }
 
-    private void moveOrDeleteSentMessage(Account account, LocalStore localStore,
-            LocalFolder localFolder, LocalMessage message) throws MessagingException {
+    private void moveOrDeleteSentMessage(Account account, LocalStore localStore, LocalMessage message)
+            throws MessagingException {
         if (!account.hasSentFolder() || !account.isUploadSentMessages()) {
             Timber.i("Not uploading sent message; deleting local message");
             message.destroy();
@@ -1625,12 +1629,14 @@ public class MessagingController {
             String sentFolderServerId = sentFolder.getServerId();
             Timber.i("Moving sent message to folder '%s' (%d)", sentFolderServerId, sentFolderId);
 
-            localFolder.moveMessages(Collections.singletonList(message), sentFolder);
+            MessageStore messageStore = messageStoreProvider.getMessageStore(account);
+            long destinationMessageId = messageStore.moveMessage(message.getDatabaseId(), sentFolderId);
 
             Timber.i("Moved sent message to folder '%s' (%d)", sentFolderServerId, sentFolderId);
 
             if (!sentFolder.isLocalOnly()) {
-                PendingCommand command = PendingAppend.create(sentFolderId, message.getUid());
+                String destinationUid = messageStore.getMessageServerId(destinationMessageId);
+                PendingCommand command = PendingAppend.create(sentFolderId, destinationUid);
                 queuePendingCommand(account, command);
                 processPendingCommands(account);
             }
@@ -1775,11 +1781,13 @@ public class MessagingController {
     private void moveOrCopyMessageSynchronous(Account account, long srcFolderId, List<LocalMessage> inMessages,
             long destFolderId, MoveOrCopyFlavor operation) {
 
+        if (operation == MoveOrCopyFlavor.MOVE_AND_MARK_AS_READ) {
+            throw new UnsupportedOperationException("MOVE_AND_MARK_AS_READ unsupported");
+        }
+
         try {
             LocalStore localStore = localStoreProvider.getInstance(account);
-            if ((operation == MoveOrCopyFlavor.MOVE
-                        || operation == MoveOrCopyFlavor.MOVE_AND_MARK_AS_READ)
-                    && !isMoveCapable(account)) {
+            if (operation == MoveOrCopyFlavor.MOVE && !isMoveCapable(account)) {
                 return;
             }
             if (operation == MoveOrCopyFlavor.COPY && !isCopyCapable(account)) {
@@ -1807,12 +1815,6 @@ public class MessagingController {
 
             List<LocalMessage> messages = localSrcFolder.getMessagesByUids(uids);
             if (messages.size() > 0) {
-                Map<String, Message> origUidMap = new HashMap<>();
-
-                for (Message message : messages) {
-                    origUidMap.put(message.getUid(), message);
-                }
-
                 Timber.i("moveOrCopyMessageSynchronous: source folder = %s, %d messages, destination folder = %s, " +
                         "operation = %s", srcFolderId, messages.size(), destFolderId, operation.name());
 
@@ -1833,25 +1835,35 @@ public class MessagingController {
                         }
                     }
                 } else {
-                    uidMap = localSrcFolder.moveMessages(messages, localDestFolder);
-                    for (Entry<String, Message> entry : origUidMap.entrySet()) {
-                        String origUid = entry.getKey();
-                        Message message = entry.getValue();
-                        for (MessagingListener l : getListeners()) {
-                            l.messageUidChanged(account, srcFolderId, origUid, message.getUid());
-                        }
+                    MessageStore messageStore = messageStoreProvider.getMessageStore(account);
+
+                    List<Long> messageIds = new ArrayList<>();
+                    Map<Long, String> messageIdToUidMapping = new HashMap<>();
+                    for (LocalMessage message : messages) {
+                        long messageId = message.getDatabaseId();
+                        messageIds.add(messageId);
+                        messageIdToUidMapping.put(messageId, message.getUid());
                     }
-                    if (operation == MoveOrCopyFlavor.MOVE_AND_MARK_AS_READ) {
-                        localDestFolder.setFlags(messages, Collections.singleton(Flag.SEEN), true);
-                        unreadCountAffected = true;
+
+                    Map<Long, Long> moveMessageIdMapping = messageStore.moveMessages(messageIds, destFolderId);
+
+                    Map<Long, String> destinationMapping =
+                            messageStore.getMessageServerIds(moveMessageIdMapping.values());
+
+                    uidMap = new HashMap<>();
+                    for (Entry<Long, Long> entry : moveMessageIdMapping.entrySet()) {
+                        long sourceMessageId = entry.getKey();
+                        long destinationMessageId = entry.getValue();
+
+                        String sourceUid = messageIdToUidMapping.get(sourceMessageId);
+                        String destinationUid = destinationMapping.get(destinationMessageId);
+                        uidMap.put(sourceUid, destinationUid);
                     }
                     unsuppressMessages(account, messages);
 
                     if (unreadCountAffected) {
                         // If this move operation changes the unread count, notify the listeners
                         // that the unread count changed in both the source and destination folder.
-                        int unreadMessageCountSrc = localSrcFolder.getUnreadMessageCount();
-                        int unreadMessageCountDest = localDestFolder.getUnreadMessageCount();
                         for (MessagingListener l : getListeners()) {
                             l.folderStatusChanged(account, srcFolderId);
                             l.folderStatusChanged(account, destFolderId);
@@ -1869,6 +1881,30 @@ public class MessagingController {
             throw new UnavailableAccountException(e);
         } catch (MessagingException me) {
             throw new RuntimeException("Error moving message", me);
+        }
+    }
+
+    public void moveToDraftsFolder(Account account, long folderId, List<MessageReference> messages){
+        putBackground("moveToDrafts", null, () -> moveToDraftsFolderInBackground(account, folderId, messages));
+    }
+
+    private void moveToDraftsFolderInBackground(Account account, long folderId, List<MessageReference> messages) {
+        for (MessageReference messageReference : messages) {
+            try {
+                Message message = loadMessage(account, folderId, messageReference.getUid());
+                Long draftMessageId = saveDraft(account, message, null, message.getSubject());
+
+                boolean draftSavedSuccessfully = draftMessageId != null;
+                if (draftSavedSuccessfully) {
+                    message.destroy();
+                }
+
+                for (MessagingListener listener : getListeners()) {
+                    listener.folderStatusChanged(account, folderId);
+                }
+            } catch (MessagingException e) {
+                Timber.e(e, "Error loading message. Draft was not saved.");
+            }
         }
     }
 
@@ -2015,10 +2051,33 @@ public class MessagingController {
             } else {
                 Timber.d("Deleting messages in normal folder, moving");
                 localTrashFolder = localStore.getFolder(trashFolderId);
-                uidMap = localFolder.moveMessages(messages, localTrashFolder);
+
+                MessageStore messageStore = messageStoreProvider.getMessageStore(account);
+
+                List<Long> messageIds = new ArrayList<>();
+                Map<Long, String> messageIdToUidMapping = new HashMap<>();
+                for (LocalMessage message : messages) {
+                    long messageId = message.getDatabaseId();
+                    messageIds.add(messageId);
+                    messageIdToUidMapping.put(messageId, message.getUid());
+                }
+
+                Map<Long, Long> moveMessageIdMapping = messageStore.moveMessages(messageIds, trashFolderId);
+
+                Map<Long, String> destinationMapping = messageStore.getMessageServerIds(moveMessageIdMapping.values());
+                uidMap = new HashMap<>();
+                for (Entry<Long, Long> entry : moveMessageIdMapping.entrySet()) {
+                    long sourceMessageId = entry.getKey();
+                    long destinationMessageId = entry.getValue();
+
+                    String sourceUid = messageIdToUidMapping.get(sourceMessageId);
+                    String destinationUid = destinationMapping.get(destinationMessageId);
+                    uidMap.put(sourceUid, destinationUid);
+                }
 
                 if (account.isMarkMessageAsReadOnDelete()) {
-                    localTrashFolder.setFlags(messages, Collections.singleton(Flag.SEEN), true);
+                    Collection<Long> destinationMessageIds = moveMessageIdMapping.values();
+                    messageStore.setFlag(destinationMessageIds, Flag.SEEN, true);
                 }
             }
 
@@ -2033,10 +2092,10 @@ public class MessagingController {
 
             Long outboxFolderId = account.getOutboxFolderId();
             if (outboxFolderId != null && folderId == outboxFolderId && supportsUpload(account)) {
-                for (Message message : messages) {
+                for (String destinationUid : uidMap.values()) {
                     // If the message was in the Outbox, then it has been copied to local Trash, and has
                     // to be copied to remote trash
-                    PendingCommand command = PendingAppend.create(trashFolderId, message.getUid());
+                    PendingCommand command = PendingAppend.create(trashFolderId, destinationUid);
                     queuePendingCommand(account, command);
                 }
                 processPendingCommands(account);
@@ -2183,54 +2242,10 @@ public class MessagingController {
         return !backend.getSupportsTrashFolder();
     }
 
-    public void sendAlternate(Context context, Account account, LocalMessage message) {
-        Timber.d("Got message %s:%s:%s for sendAlternate",
-                account.getDescription(), message.getFolder(), message.getUid());
-
-        Intent msg = new Intent(Intent.ACTION_SEND);
-        String quotedText = null;
-        Part part = MimeUtility.findFirstPartByMimeType(message, "text/plain");
-        if (part == null) {
-            part = MimeUtility.findFirstPartByMimeType(message, "text/html");
-        }
-        if (part != null) {
-            quotedText = MessageExtractor.getTextFromPart(part);
-        }
-        if (quotedText != null) {
-            msg.putExtra(Intent.EXTRA_TEXT, quotedText);
-        }
-        msg.putExtra(Intent.EXTRA_SUBJECT, message.getSubject());
-
-        Address[] from = message.getFrom();
-        String[] senders = new String[from.length];
-        for (int i = 0; i < from.length; i++) {
-            senders[i] = from[i].toString();
-        }
-        msg.putExtra(Intents.Share.EXTRA_FROM, senders);
-
-        Address[] to = message.getRecipients(RecipientType.TO);
-        String[] recipientsTo = new String[to.length];
-        for (int i = 0; i < to.length; i++) {
-            recipientsTo[i] = to[i].toString();
-        }
-        msg.putExtra(Intent.EXTRA_EMAIL, recipientsTo);
-
-        Address[] cc = message.getRecipients(RecipientType.CC);
-        String[] recipientsCc = new String[cc.length];
-        for (int i = 0; i < cc.length; i++) {
-            recipientsCc[i] = cc[i].toString();
-        }
-        msg.putExtra(Intent.EXTRA_CC, recipientsCc);
-
-        msg.setType("text/plain");
-        Intent chooserIntent = Intent.createChooser(msg, resourceProvider.sendAlternateChooserTitle());
-        context.startActivity(chooserIntent);
-    }
-
     public boolean performPeriodicMailSync(Account account) {
         final CountDownLatch latch = new CountDownLatch(1);
         MutableBoolean syncError = new MutableBoolean(false);
-        checkMail(context, account, false, false, new SimpleMessagingListener() {
+        checkMail(account, false, false, new SimpleMessagingListener() {
             @Override
             public void checkMailFinished(Context context, Account account) {
                 latch.countDown();
@@ -2266,7 +2281,7 @@ public class MessagingController {
      * Checks mail for one or multiple accounts. If account is null all accounts
      * are checked.
      */
-    public void checkMail(final Context context, final Account account,
+    public void checkMail(final Account account,
             final boolean ignoreLastCheckedTime,
             final boolean useManualWakeLock,
             final MessagingListener listener) {
@@ -2528,62 +2543,18 @@ public class MessagingController {
 
     /**
      * Save a draft message.
-     *
-     * @param account
-     *         Account we are saving for.
-     * @param message
-     *         Message to save.
-     *
-     * @return Message representing the entry in the local store.
      */
-    public Message saveDraft(final Account account, final Message message, long existingDraftId, String plaintextSubject, boolean saveRemotely) {
-        LocalMessage localMessage = null;
-        try {
-            Long draftsFolderId = account.getDraftsFolderId();
-            if (draftsFolderId == null) {
-                throw new IllegalStateException("No Drafts folder configured");
-            }
-
-            LocalStore localStore = localStoreProvider.getInstance(account);
-            LocalFolder localFolder = localStore.getFolder(draftsFolderId);
-            localFolder.open();
-
-            if (existingDraftId != INVALID_MESSAGE_ID) {
-                String uid = localFolder.getMessageUidById(existingDraftId);
-                message.setUid(uid);
-            }
-
-            // Save the message to the store.
-            localFolder.appendMessages(Collections.singletonList(message));
-            // Fetch the message back from the store.  This is the Message that's returned to the caller.
-            localMessage = localFolder.getMessage(message.getUid());
-            localMessage.setFlag(Flag.X_DOWNLOADED_FULL, true);
-            if (plaintextSubject != null) {
-                localMessage.setCachedDecryptedSubject(plaintextSubject);
-            }
-
-            if (saveRemotely && supportsUpload(account)) {
-                PendingCommand command = PendingAppend.create(localFolder.getDatabaseId(), localMessage.getUid());
-                queuePendingCommand(account, command);
-                processPendingCommands(account);
-            }
-
-        } catch (MessagingException e) {
-            Timber.e(e, "Unable to save message as draft.");
-        }
-        return localMessage;
+    public Long saveDraft(Account account, Message message, Long existingDraftId, String plaintextSubject) {
+        return draftOperations.saveDraft(account, message, existingDraftId, plaintextSubject);
     }
 
-    public long getId(Message message) {
-        long id;
+    public Long getId(Message message) {
         if (message instanceof LocalMessage) {
-            id = ((LocalMessage) message).getDatabaseId();
+            return ((LocalMessage) message).getDatabaseId();
         } else {
             Timber.w("MessagingController.getId() called without a LocalMessage");
-            id = INVALID_MESSAGE_ID;
+            return null;
         }
-
-        return id;
     }
 
     private static AtomicInteger sequencing = new AtomicInteger(0);

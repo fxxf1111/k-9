@@ -1,7 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 apply plugin: 'org.jetbrains.kotlin.android.extensions'
-apply plugin: 'org.jlleitschuh.gradle.ktlint'
 
 if (rootProject.testCoverage) {
     apply plugin: 'jacoco'
@@ -27,7 +26,9 @@ dependencies {
     implementation "com.github.bumptech.glide:glide:${versions.glide}"
     annotationProcessor "com.github.bumptech.glide:compiler:${versions.glide}"
 
-    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.4'
+    if (project.hasProperty('k9mail.enableLeakCanary') && project.property('k9mail.enableLeakCanary') == "true") {
+        debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.4'
+    }
 
     // Required for DependencyInjectionTest to be able to resolve OpenPgpApiManager
     testImplementation project(':plugins:openpgp-api-lib:openpgp-api')
@@ -48,8 +49,13 @@ android {
         applicationId "com.fsck.k9"
         testApplicationId "com.fsck.k9.tests"
 
-        versionCode 27017
-        versionName '5.718-SNAPSHOT'
+        versionCode 27025
+        versionName '5.726-SNAPSHOT'
+
+        // Keep in sync with the resource string array 'supported_languages'
+        resConfigs "in", "br", "ca", "cs", "cy", "da", "de", "et", "en", "es", "eo", "eu", "fr", "gd", "gl", "hr",
+                "is", "it", "lv", "lt", "hu", "nl", "nb", "pl", "pt_PT", "pt_BR", "ru", "ro", "sq", "sk", "sl", "fi",
+                "sv", "tr", "el", "bg", "sr", "uk", "iw", "ar", "fa", "ko", "zh_CN", "zh_TW", "ja"
 
         minSdkVersion buildConfig.minSdk
         targetSdkVersion buildConfig.targetSdk
@@ -110,6 +116,7 @@ android {
         exclude 'META-INF/*.kotlin_module'
         exclude 'META-INF/*.version'
         exclude 'kotlin/**'
+        exclude 'DebugProbesKt.bin'
     }
 
     dependenciesInfo {

@@ -16,7 +16,6 @@ import com.fsck.k9.mail.internet.MimeHeader
 import com.fsck.k9.mail.internet.MimeMessageHelper
 import com.fsck.k9.mail.internet.MimeMultipart
 import com.fsck.k9.mail.internet.MimeUtility
-import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.text.SimpleDateFormat
@@ -40,6 +39,7 @@ class ImapFolder internal constructor(
     @Volatile
     private var connection: ImapConnection? = null
     private var msgSeqUidMap: MutableMap<Long, String> = ConcurrentHashMap()
+
     @Volatile
     private var exists = false
     private var inSearch = false
@@ -409,7 +409,8 @@ class ImapFolder internal constructor(
         checkOpen()
 
         val dateSearchString = getDateSearchString(earliestDate)
-        val command = String.format(Locale.US, "UID SEARCH %d:%d%s%s",
+        val command = String.format(
+            Locale.US, "UID SEARCH %d:%d%s%s",
             start,
             end,
             dateSearchString,
@@ -527,7 +528,7 @@ class ImapFolder internal constructor(
     fun fetch(
         messages: List<ImapMessage>?,
         fetchProfile: FetchProfile,
-        listener: MessageRetrievalListener<ImapMessage?>?,
+        listener: MessageRetrievalListener<ImapMessage>?,
         maxDownloadSize: Int
     ) {
         if (messages == null || messages.isEmpty()) {
@@ -584,7 +585,8 @@ class ImapFolder internal constructor(
                 var messageNumber = 0
                 var callback: ImapResponseCallback? = null
                 if (fetchProfile.contains(FetchProfile.Item.BODY) ||
-                    fetchProfile.contains(FetchProfile.Item.BODY_SANE)) {
+                    fetchProfile.contains(FetchProfile.Item.BODY_SANE)
+                ) {
                     callback = FetchBodyCallback(messageMap)
                 }
 
@@ -621,7 +623,7 @@ class ImapFolder internal constructor(
                         if (literal != null) {
                             when (literal) {
                                 is String -> {
-                                    val bodyStream: InputStream = ByteArrayInputStream(literal.toByteArray())
+                                    val bodyStream: InputStream = literal.toByteArray().inputStream()
                                     message.parse(bodyStream)
                                 }
                                 is Int -> {
@@ -697,7 +699,7 @@ class ImapFolder internal constructor(
                                 MimeMessageHelper.setBody(part, literal as Body?)
                             }
                             is String -> {
-                                val bodyStream: InputStream = ByteArrayInputStream(literal.toByteArray())
+                                val bodyStream: InputStream = literal.toByteArray().inputStream()
                                 val contentTransferEncoding =
                                     part.getHeader(MimeHeader.HEADER_CONTENT_TRANSFER_ENCODING)[0]
                                 val contentType = part.getHeader(MimeHeader.HEADER_CONTENT_TYPE)[0]
