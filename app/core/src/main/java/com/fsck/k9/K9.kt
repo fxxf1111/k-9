@@ -335,13 +335,13 @@ object K9 : EarlyInit {
         val storage = prefs.storage
         isDebugLoggingEnabled = storage.getBoolean("enableDebugLogging", DEVELOPER_MODE)
         isSensitiveDebugLoggingEnabled = storage.getBoolean("enableSensitiveLogging", false)
-        isShowAnimations = storage.getBoolean("animations", true)
+        isShowAnimations = storage.getBoolean("animations", false)
         isUseVolumeKeysForNavigation = storage.getBoolean("useVolumeKeysForNavigation", false)
         isUseVolumeKeysForListNavigation = storage.getBoolean("useVolumeKeysForListNavigation", false)
         isHideSpecialAccounts = storage.getBoolean("hideSpecialAccounts", false)
         isMessageListSenderAboveSubject = storage.getBoolean("messageListSenderAboveSubject", false)
         isShowMessageListStars = storage.getBoolean("messageListStars", true)
-        messageListPreviewLines = storage.getInt("messageListPreviewLines", 2)
+        messageListPreviewLines = storage.getInt("messageListPreviewLines", 4)
 
         isAutoFitWidth = storage.getBoolean("autofitWidth", true)
 
