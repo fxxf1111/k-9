@@ -57,7 +57,6 @@ import com.fsck.k9.helper.MutableBoolean;
 import com.fsck.k9.mail.AuthenticationFailedException;
 import com.fsck.k9.mail.CertificateValidationException;
 import com.fsck.k9.mail.FetchProfile;
-import com.fsck.k9.mail.FetchProfile.Item;
 import com.fsck.k9.mail.Flag;
 import com.fsck.k9.mail.FolderClass;
 import com.fsck.k9.mail.Message;
@@ -68,10 +67,13 @@ import com.fsck.k9.mailstore.LocalFolder;
 import com.fsck.k9.mailstore.LocalMessage;
 import com.fsck.k9.mailstore.LocalStore;
 import com.fsck.k9.mailstore.LocalStoreProvider;
+import com.fsck.k9.mail.MessageDownloadState;
 import com.fsck.k9.mailstore.MessageStore;
-import com.fsck.k9.mailstore.MessageStoreProvider;
+import com.fsck.k9.mailstore.MessageStoreManager;
 import com.fsck.k9.mailstore.OutboxState;
 import com.fsck.k9.mailstore.OutboxStateRepository;
+import com.fsck.k9.mailstore.SaveMessageData;
+import com.fsck.k9.mailstore.SaveMessageDataCreator;
 import com.fsck.k9.mailstore.SendState;
 import com.fsck.k9.mailstore.UnavailableStorageException;
 import com.fsck.k9.notification.NotificationController;
@@ -103,7 +105,6 @@ import static com.fsck.k9.search.LocalSearchExtensions.getAccountsFromLocalSearc
  * it removes itself. Thus, any commands that that activity submitted are
  * removed from the queue once the activity is no longer active.
  */
-@SuppressWarnings("unchecked") // TODO change architecture to actually work with generics
 public class MessagingController {
     public static final Set<Flag> SYNC_FLAGS = EnumSet.of(Flag.SEEN, Flag.FLAGGED, Flag.ANSWERED, Flag.FORWARDED);
 
@@ -115,7 +116,8 @@ public class MessagingController {
     private final LocalStoreProvider localStoreProvider;
     private final BackendManager backendManager;
     private final Preferences preferences;
-    private final MessageStoreProvider messageStoreProvider;
+    private final MessageStoreManager messageStoreManager;
+    private final SaveMessageDataCreator saveMessageDataCreator;
 
     private final Thread controllerThread;
 
@@ -139,8 +141,8 @@ public class MessagingController {
     MessagingController(Context context, NotificationController notificationController,
             NotificationStrategy notificationStrategy, LocalStoreProvider localStoreProvider,
             UnreadMessageCountProvider unreadMessageCountProvider, BackendManager backendManager,
-            Preferences preferences, MessageStoreProvider messageStoreProvider,
-            List<ControllerExtension> controllerExtensions) {
+            Preferences preferences, MessageStoreManager messageStoreManager,
+            SaveMessageDataCreator saveMessageDataCreator, List<ControllerExtension> controllerExtensions) {
         this.context = context;
         this.notificationController = notificationController;
         this.notificationStrategy = notificationStrategy;
@@ -148,7 +150,8 @@ public class MessagingController {
         this.unreadMessageCountProvider = unreadMessageCountProvider;
         this.backendManager = backendManager;
         this.preferences = preferences;
-        this.messageStoreProvider = messageStoreProvider;
+        this.messageStoreManager = messageStoreManager;
+        this.saveMessageDataCreator = saveMessageDataCreator;
 
         controllerThread = new Thread(new Runnable() {
             @Override
@@ -162,7 +165,7 @@ public class MessagingController {
 
         initializeControllerExtensions(controllerExtensions);
 
-        draftOperations = new DraftOperations(this);
+        draftOperations = new DraftOperations(this, messageStoreManager, saveMessageDataCreator);
     }
 
     private void initializeControllerExtensions(List<ControllerExtension> controllerExtensions) {
@@ -557,11 +560,6 @@ public class MessagingController {
     private void loadSearchResultsSynchronous(Account account, List<String> messageServerIds, LocalFolder localFolder)
             throws MessagingException {
 
-        FetchProfile fetchProfile = new FetchProfile();
-        fetchProfile.add(FetchProfile.Item.FLAGS);
-        fetchProfile.add(FetchProfile.Item.ENVELOPE);
-        fetchProfile.add(FetchProfile.Item.STRUCTURE);
-
         Backend backend = getBackend(account);
         String folderServerId = localFolder.getServerId();
 
@@ -569,9 +567,7 @@ public class MessagingController {
             LocalMessage localMessage = localFolder.getMessage(messageServerId);
 
             if (localMessage == null) {
-                int maxDownloadSize = account.getMaximumAutoDownloadMessageSize();
-                Message message = backend.fetchMessage(folderServerId, messageServerId, fetchProfile, maxDownloadSize);
-                localFolder.appendMessages(Collections.singletonList(message));
+                backend.downloadMessageStructure(folderServerId, messageServerId);
             }
         }
     }
@@ -1252,12 +1248,7 @@ public class MessagingController {
                     SyncConfig syncConfig = createSyncConfig(account);
                     backend.downloadMessage(syncConfig, folderServerId, uid);
                 } else {
-                    FetchProfile fp = new FetchProfile();
-                    fp.add(FetchProfile.Item.BODY);
-                    fp.add(FetchProfile.Item.FLAGS);
-                    int maxDownloadSize = account.getMaximumAutoDownloadMessageSize();
-                    Message remoteMessage = backend.fetchMessage(folderServerId, uid, fp, maxDownloadSize);
-                    localFolder.appendMessages(Collections.singletonList(remoteMessage));
+                    backend.downloadCompleteMessage(folderServerId, uid);
                 }
 
                 message = localFolder.getMessage(uid);
@@ -1372,39 +1363,30 @@ public class MessagingController {
     }
 
     /**
-     * Stores the given message in the Outbox and starts a sendPendingMessages command to
-     * attempt to send the message.
+     * Stores the given message in the Outbox and starts a sendPendingMessages command to attempt to send the message.
      */
-    public void sendMessage(final Account account,
-            final Message message,
-            String plaintextSubject,
-            MessagingListener listener) {
+    public void sendMessage(Account account, Message message, String plaintextSubject, MessagingListener listener) {
         try {
-            LocalStore localStore = localStoreProvider.getInstance(account);
-            LocalFolder localFolder = localStore.getFolder(account.getOutboxFolderId());
-            localFolder.open();
-            message.setFlag(Flag.SEEN, true);
-            localFolder.appendMessages(Collections.singletonList(message));
-            LocalMessage localMessage = localFolder.getMessage(message.getUid());
-            long messageId = localMessage.getDatabaseId();
-            localMessage.setFlag(Flag.X_DOWNLOADED_FULL, true);
-            if (plaintextSubject != null) {
-                localMessage.setCachedDecryptedSubject(plaintextSubject);
+            Long outboxFolderId = account.getOutboxFolderId();
+            if (outboxFolderId == null) {
+                Timber.e("Error sending message. No Outbox folder configured.");
+                return;
             }
 
+            message.setFlag(Flag.SEEN, true);
+
+            MessageStore messageStore = messageStoreManager.getMessageStore(account);
+            SaveMessageData messageData = saveMessageDataCreator.createSaveMessageData(
+                    message, MessageDownloadState.FULL, plaintextSubject);
+            long messageId = messageStore.saveLocalMessage(outboxFolderId, messageData, null);
+
+            LocalStore localStore = localStoreProvider.getInstance(account);
             OutboxStateRepository outboxStateRepository = localStore.getOutboxStateRepository();
             outboxStateRepository.initializeOutboxState(messageId);
 
             sendPendingMessages(account, listener);
         } catch (Exception e) {
-            /*
-            for (MessagingListener l : getListeners())
-            {
-                // TODO general failed
-            }
-            */
             Timber.e(e, "Error sending message");
-
         }
     }
 
@@ -1629,7 +1611,7 @@ public class MessagingController {
             String sentFolderServerId = sentFolder.getServerId();
             Timber.i("Moving sent message to folder '%s' (%d)", sentFolderServerId, sentFolderId);
 
-            MessageStore messageStore = messageStoreProvider.getMessageStore(account);
+            MessageStore messageStore = messageStoreManager.getMessageStore(account);
             long destinationMessageId = messageStore.moveMessage(message.getDatabaseId(), sentFolderId);
 
             Timber.i("Moved sent message to folder '%s' (%d)", sentFolderServerId, sentFolderId);
@@ -1818,14 +1800,19 @@ public class MessagingController {
                 Timber.i("moveOrCopyMessageSynchronous: source folder = %s, %d messages, destination folder = %s, " +
                         "operation = %s", srcFolderId, messages.size(), destFolderId, operation.name());
 
-                Map<String, String> uidMap;
+                MessageStore messageStore = messageStoreManager.getMessageStore(account);
 
+                List<Long> messageIds = new ArrayList<>();
+                Map<Long, String> messageIdToUidMapping = new HashMap<>();
+                for (LocalMessage message : messages) {
+                    long messageId = message.getDatabaseId();
+                    messageIds.add(messageId);
+                    messageIdToUidMapping.put(messageId, message.getUid());
+                }
+
+                Map<Long, Long> resultIdMapping;
                 if (operation == MoveOrCopyFlavor.COPY) {
-                    FetchProfile fp = new FetchProfile();
-                    fp.add(Item.ENVELOPE);
-                    fp.add(Item.BODY);
-                    localSrcFolder.fetch(messages, fp, null);
-                    uidMap = localSrcFolder.copyMessages(messages, localDestFolder);
+                    resultIdMapping = messageStore.copyMessages(messageIds, destFolderId);
 
                     if (unreadCountAffected) {
                         // If this copy operation changes the unread count in the destination
@@ -1835,30 +1822,8 @@ public class MessagingController {
                         }
                     }
                 } else {
-                    MessageStore messageStore = messageStoreProvider.getMessageStore(account);
+                    resultIdMapping = messageStore.moveMessages(messageIds, destFolderId);
 
-                    List<Long> messageIds = new ArrayList<>();
-                    Map<Long, String> messageIdToUidMapping = new HashMap<>();
-                    for (LocalMessage message : messages) {
-                        long messageId = message.getDatabaseId();
-                        messageIds.add(messageId);
-                        messageIdToUidMapping.put(messageId, message.getUid());
-                    }
-
-                    Map<Long, Long> moveMessageIdMapping = messageStore.moveMessages(messageIds, destFolderId);
-
-                    Map<Long, String> destinationMapping =
-                            messageStore.getMessageServerIds(moveMessageIdMapping.values());
-
-                    uidMap = new HashMap<>();
-                    for (Entry<Long, Long> entry : moveMessageIdMapping.entrySet()) {
-                        long sourceMessageId = entry.getKey();
-                        long destinationMessageId = entry.getValue();
-
-                        String sourceUid = messageIdToUidMapping.get(sourceMessageId);
-                        String destinationUid = destinationMapping.get(destinationMessageId);
-                        uidMap.put(sourceUid, destinationUid);
-                    }
                     unsuppressMessages(account, messages);
 
                     if (unreadCountAffected) {
@@ -1869,6 +1834,18 @@ public class MessagingController {
                             l.folderStatusChanged(account, destFolderId);
                         }
                     }
+                }
+
+                Map<Long, String> destinationMapping = messageStore.getMessageServerIds(resultIdMapping.values());
+
+                Map<String, String> uidMap = new HashMap<>();
+                for (Entry<Long, Long> entry : resultIdMapping.entrySet()) {
+                    long sourceMessageId = entry.getKey();
+                    long destinationMessageId = entry.getValue();
+
+                    String sourceUid = messageIdToUidMapping.get(sourceMessageId);
+                    String destinationUid = destinationMapping.get(destinationMessageId);
+                    uidMap.put(sourceUid, destinationUid);
                 }
 
                 queueMoveOrCopy(account, localSrcFolder.getDatabaseId(), localDestFolder.getDatabaseId(),
@@ -2052,7 +2029,7 @@ public class MessagingController {
                 Timber.d("Deleting messages in normal folder, moving");
                 localTrashFolder = localStore.getFolder(trashFolderId);
 
-                MessageStore messageStore = messageStoreProvider.getMessageStore(account);
+                MessageStore messageStore = messageStoreManager.getMessageStore(account);
 
                 List<Long> messageIds = new ArrayList<>();
                 Map<Long, String> messageIdToUidMapping = new HashMap<>();
@@ -2355,6 +2332,8 @@ public class MessagingController {
         account.setRingNotified(false);
 
         sendPendingMessages(account, listener);
+
+        refreshFolderListIfStale(account);
 
         try {
             Account.FolderMode aDisplayMode = account.getFolderDisplayMode();

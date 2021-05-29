@@ -1,14 +1,11 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
-apply plugin: 'org.jetbrains.kotlin.android.extensions'
 
 if (rootProject.testCoverage) {
     apply plugin: 'jacoco'
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${versions.kotlin}"
-
     implementation project(":app:ui:legacy")
     implementation project(":app:core")
     implementation project(":app:storage")
@@ -37,7 +34,7 @@ dependencies {
     testImplementation "junit:junit:${versions.junit}"
     testImplementation "com.google.truth:truth:${versions.truth}"
     testImplementation "org.mockito:mockito-core:${versions.mockito}"
-    testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:${versions.mockitoKotlin}"
+    testImplementation "org.mockito.kotlin:mockito-kotlin:${versions.mockitoKotlin}"
     testImplementation "org.koin:koin-test:${versions.koin}"
 }
 
@@ -49,13 +46,13 @@ android {
         applicationId "com.fsck.k9"
         testApplicationId "com.fsck.k9.tests"
 
-        versionCode 27025
-        versionName '5.726-SNAPSHOT'
+        versionCode 27034
+        versionName '5.735-SNAPSHOT'
 
         // Keep in sync with the resource string array 'supported_languages'
-        resConfigs "in", "br", "ca", "cs", "cy", "da", "de", "et", "en", "es", "eo", "eu", "fr", "gd", "gl", "hr",
-                "is", "it", "lv", "lt", "hu", "nl", "nb", "pl", "pt_PT", "pt_BR", "ru", "ro", "sq", "sk", "sl", "fi",
-                "sv", "tr", "el", "bg", "sr", "uk", "iw", "ar", "fa", "ko", "zh_CN", "zh_TW", "ja"
+        resConfigs "in", "br", "ca", "cs", "cy", "da", "de", "et", "en", "en_GB", "es", "eo", "eu", "fr", "gd", "gl",
+                "hr", "is", "it", "lv", "lt", "hu", "nl", "nb", "pl", "pt_PT", "pt_BR", "ru", "ro", "sq", "sk", "sl",
+                "fi", "sv", "tr", "el", "be", "bg", "sr", "uk", "iw", "ar", "fa", "ml", "ko", "zh_CN", "zh_TW", "ja"
 
         minSdkVersion buildConfig.minSdk
         targetSdkVersion buildConfig.targetSdk
@@ -74,8 +71,6 @@ android {
         }
 
     }
-
-
 
     buildTypes {
         release {
@@ -140,7 +135,5 @@ android {
     }
 }
 
-androidExtensions {
-    experimental = true
-}
+
 

@@ -1,25 +1,36 @@
 package com.fsck.k9.ui.settings
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.annotation.AttrRes
 import androidx.annotation.IdRes
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.fsck.k9.Account
 import com.fsck.k9.ui.R
+import com.fsck.k9.ui.helper.RecyclerViewBackgroundDrawable
 import com.fsck.k9.ui.observeNotNull
+import com.fsck.k9.ui.resolveColorAttribute
 import com.fsck.k9.ui.settings.account.AccountSettingsActivity
+import com.fsck.k9.view.DraggableFrameLayout
 import com.mikepenz.fastadapter.FastAdapter
 import com.mikepenz.fastadapter.GenericItem
 import com.mikepenz.fastadapter.adapters.ItemAdapter
-import kotlinx.android.synthetic.main.fragment_settings_list.*
+import com.mikepenz.fastadapter.drag.ItemTouchCallback
+import com.mikepenz.fastadapter.drag.SimpleDragCallback
+import com.mikepenz.fastadapter.utils.DragDropUtil
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
-class SettingsListFragment : Fragment() {
+class SettingsListFragment : Fragment(), ItemTouchCallback {
     private val viewModel: SettingsViewModel by viewModel()
 
     private lateinit var itemAdapter: ItemAdapter<GenericItem>
@@ -29,12 +40,17 @@ class SettingsListFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        initializeSettingsList()
+        initializeSettingsList(recyclerView = view.findViewById(R.id.settings_list))
         populateSettingsList()
     }
 
-    private fun initializeSettingsList() {
+    private fun initializeSettingsList(recyclerView: RecyclerView) {
         itemAdapter = ItemAdapter()
+
+        val touchCallBack = SimpleDragCallback(this).apply {
+            setIsDragEnabled(true)
+        }
+        val touchHelper = ItemTouchHelper(touchCallBack)
 
         val settingsListAdapter = FastAdapter.with(itemAdapter).apply {
             setHasStableIds(true)
@@ -42,20 +58,30 @@ class SettingsListFragment : Fragment() {
                 handleItemClick(item)
                 true
             }
+            addEventHook(
+                DragHandleTouchEvent { position ->
+                    recyclerView.findViewHolderForAdapterPosition(position)?.let { viewHolder ->
+                        touchHelper.startDrag(viewHolder)
+                    }
+                }
+            )
         }
 
-        with(settings_list) {
-            adapter = settingsListAdapter
-            layoutManager = LinearLayoutManager(context)
-        }
+        recyclerView.adapter = settingsListAdapter
+        recyclerView.layoutManager = LinearLayoutManager(context)
+        touchHelper.attachToRecyclerView(recyclerView)
+
+        val recyclerViewBackgroundColor = recyclerView.context.theme.resolveColorAttribute(R.attr.behindRecyclerView)
+        RecyclerViewBackgroundDrawable(recyclerViewBackgroundColor).attachTo(recyclerView)
     }
 
     private fun populateSettingsList() {
         viewModel.accounts.observeNotNull(this) { accounts ->
-            if (accounts.isEmpty()) {
+            val accountsFinishedSetup = accounts.filter { it.isFinishedSetup }
+            if (accountsFinishedSetup.isEmpty()) {
                 launchOnboarding()
             } else {
-                populateSettingsList(accounts)
+                populateSettingsList(accountsFinishedSetup)
             }
         }
     }
@@ -69,8 +95,9 @@ class SettingsListFragment : Fragment() {
             )
 
             addSection(title = getString(R.string.accounts_title)) {
+                val isDraggable = accounts.size > 1
                 for (account in accounts) {
-                    addAccount(account)
+                    addAccount(account, isDraggable)
                 }
 
                 addAction(
@@ -102,6 +129,12 @@ class SettingsListFragment : Fragment() {
                     navigationAction = R.id.action_settingsListScreen_to_aboutScreen,
                     icon = R.attr.iconSettingsAbout
                 )
+
+                addUrlAction(
+                    text = getString(R.string.user_forum_title),
+                    url = getString(R.string.user_forum_url),
+                    icon = R.attr.iconUserForum
+                )
             }
         }
 
@@ -111,7 +144,17 @@ class SettingsListFragment : Fragment() {
     private fun handleItemClick(item: GenericItem) {
         when (item) {
             is AccountItem -> launchAccountSettings(item.account)
+            is UrlActionItem -> openUrl(item.url)
             is SettingsActionItem -> findNavController().navigate(item.navigationAction)
+        }
+    }
+
+    private fun openUrl(url: String) {
+        try {
+            val viewIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            startActivity(viewIntent)
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(requireContext(), R.string.error_activity_not_found, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -121,7 +164,7 @@ class SettingsListFragment : Fragment() {
 
     private fun launchOnboarding() {
         findNavController().navigate(R.id.action_settingsListScreen_to_onboardingScreen)
-        requireActivity().finish()
+        requireActivity().finishAffinity()
     }
 
     private fun buildSettingsList(block: SettingsListBuilder.() -> Unit): List<GenericItem> {
@@ -137,8 +180,13 @@ class SettingsListFragment : Fragment() {
             settingsList.add(SettingsActionItem(itemId, text, navigationAction, icon))
         }
 
-        fun addAccount(account: Account) {
-            settingsList.add(AccountItem(account))
+        fun addUrlAction(text: String, url: String, @AttrRes icon: Int) {
+            itemId++
+            settingsList.add(UrlActionItem(itemId, text, url, icon))
+        }
+
+        fun addAccount(account: Account, isDraggable: Boolean) {
+            settingsList.add(AccountItem(account, isDraggable))
         }
 
         fun addSection(title: String, block: SettingsListBuilder.() -> Unit) {
@@ -148,5 +196,35 @@ class SettingsListFragment : Fragment() {
         }
 
         fun toList(): List<GenericItem> = settingsList
+    }
+
+    override fun itemTouchStartDrag(viewHolder: RecyclerView.ViewHolder) {
+        (viewHolder.itemView as DraggableFrameLayout).isDragged = true
+    }
+
+    override fun itemTouchStopDrag(viewHolder: RecyclerView.ViewHolder) {
+        (viewHolder.itemView as DraggableFrameLayout).isDragged = false
+    }
+
+    override fun itemTouchOnMove(oldPosition: Int, newPosition: Int): Boolean {
+        val firstDropPosition = itemAdapter.adapterItems.indexOfFirst { it is AccountItem }
+        val lastDropPosition = itemAdapter.adapterItems.indexOfLast { it is AccountItem }
+
+        return if (newPosition in firstDropPosition..lastDropPosition) {
+            DragDropUtil.onMove(itemAdapter, oldPosition, newPosition)
+            true
+        } else {
+            false
+        }
+    }
+
+    override fun itemTouchDropped(oldPosition: Int, newPosition: Int) {
+        if (oldPosition == newPosition) return
+
+        val account = (itemAdapter.getAdapterItem(newPosition) as AccountItem).account
+        val firstAccountPosition = itemAdapter.adapterItems.indexOfFirst { it is AccountItem }
+        val newAccountPosition = newPosition - firstAccountPosition
+
+        viewModel.moveAccount(account, newAccountPosition)
     }
 }

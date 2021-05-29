@@ -14,10 +14,18 @@
     <!-- Used in the about dialog -->
     <string name="app_authors">The K-9 Dog Walkers</string>
     <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Portions Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
-    <string name="source_code">Source</string>
+    <string name="source_code">Source code</string>
     <string name="app_license">Apache License, Version 2.0</string>
+    <string name="about_project_title">Open Source Project</string>
+    <string name="about_website_title">Website</string>
+    <string name="user_forum_title">User forum</string>
+    <string name="about_fediverse_title">Fediverse</string>
+    <string name="about_twitter_title">Twitter</string>
     <string name="about_libraries">Libraries</string>
     <string name="license">License</string>
+    <string name="changelog_title">Changelog</string>
+    <string name="changelog_loading_error">Couldn\'t load the changelog.</string>
+    <string name="changelog_version_title">Version %s</string>
 
 
     <!-- Welcome message -->
@@ -142,11 +150,11 @@ Please submit bug reports, contribute new features and ask questions at
     <string name="unflag_action">Remove star</string>
     <string name="copy_action">Copy</string>
     <string name="show_headers_action">Show headers</string>
-    <string name="hide_headers_action">Hide headers</string>
     <plurals name="copy_address_to_clipboard">
         <item quantity="one">Address copied to clipboard</item>
         <item quantity="other">Addresses copied to clipboard</item>
     </plurals>
+    <string name="copy_subject_to_clipboard">Subject text copied to clipboard</string>
 
     <string name="message_view_theme_action_dark">Switch to dark theme</string>
     <string name="message_view_theme_action_light">Switch to light theme</string>
@@ -445,7 +453,6 @@ Please submit bug reports, contribute new features and ask questions at
     <string name="account_setup_options_mail_check_frequency_12hour">Every 12 hours</string>
     <string name="account_setup_options_mail_check_frequency_24hour">Every 24 hours</string>
 
-    <string name="push_poll_on_connect_label">Poll when connecting for push</string>
     <string name="account_setup_options_enable_push_label">Enable push mail for this account</string>
     <string name="account_setup_options_enable_push_summary">If your server supports it, new messages will appear instantly. This option can dramatically improve or hurt performance.</string>
     <string name="idle_refresh_period_label">Refresh IDLE connection</string>
@@ -698,6 +705,7 @@ Please submit bug reports, contribute new features and ask questions at
     <string name="manage_identities_context_menu_title">Manage identity</string>
 
     <string name="edit_identity_title">Edit identity</string>
+    <string name="edit_identity_save">Save</string>
     <string name="new_identity_action">New identity</string>
 
     <string name="account_settings_always_bcc_label">Bcc all messages to</string>
@@ -821,7 +829,7 @@ Please submit bug reports, contribute new features and ask questions at
     <string name="volume_navigation_message">In message views</string>
     <string name="volume_navigation_list">In list views</string>
 
-    <string name="hide_special_accounts_title">Hide Unified Inbox</string>
+    <string name="show_unified_inbox_title">Show Unified Inbox</string>
 
     <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
     <string name="unread_modifier"> - Unread</string>
@@ -889,6 +897,7 @@ Please submit bug reports, contribute new features and ask questions at
 
     <string name="save_or_discard_draft_message_dlg_title">Save draft message?</string>
     <string name="save_or_discard_draft_message_instructions_fmt">Save or Discard this message?</string>
+    <string name="save_or_discard_draft_message_changes">Save or Discard changes?</string>
 
     <string name="confirm_discard_draft_message_title">Discard message?</string>
     <string name="confirm_discard_draft_message">Are you sure you want to discard this message?</string>
@@ -1252,4 +1261,6 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <!-- permissions -->
     <string name="permission_contacts_rationale_title">Allow access to contacts</string>
     <string name="permission_contacts_rationale_message">To be able to provide contact suggestions and to display contact names and photos, the app needs access to your contacts.</string>
+
+    <string name="generic_loading_error">An error occurred while loading the data</string>
 </resources>

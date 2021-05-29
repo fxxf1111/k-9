@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
 import android.content.res.Configuration
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Parcelable
 import android.view.KeyEvent
@@ -15,7 +16,9 @@ import android.view.animation.AnimationUtils
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.ActionBar
-import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.widget.Toolbar
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.drawerlayout.widget.DrawerLayout.DrawerListener
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import com.fsck.k9.Account
@@ -23,6 +26,7 @@ import com.fsck.k9.Account.SortType
 import com.fsck.k9.K9
 import com.fsck.k9.K9.SplitViewMode
 import com.fsck.k9.Preferences
+import com.fsck.k9.account.BackgroundAccountRemover
 import com.fsck.k9.activity.compose.MessageActions
 import com.fsck.k9.controller.MessageReference
 import com.fsck.k9.fragment.MessageListFragment
@@ -45,6 +49,7 @@ import com.fsck.k9.ui.base.K9Activity
 import com.fsck.k9.ui.base.Theme
 import com.fsck.k9.ui.managefolders.ManageFoldersActivity
 import com.fsck.k9.ui.messagelist.DefaultFolderProvider
+import com.fsck.k9.ui.messagesource.MessageSourceActivity
 import com.fsck.k9.ui.messageview.MessageViewFragment
 import com.fsck.k9.ui.messageview.MessageViewFragment.MessageViewFragmentListener
 import com.fsck.k9.ui.messageview.PlaceholderFragment
@@ -54,10 +59,10 @@ import com.fsck.k9.ui.permissions.Permission
 import com.fsck.k9.ui.permissions.PermissionUiHelper
 import com.fsck.k9.view.ViewSwitcher
 import com.fsck.k9.view.ViewSwitcher.OnSwitchCompleteListener
-import com.mikepenz.materialdrawer.Drawer.OnDrawerListener
+import com.mikepenz.materialdrawer.util.getOptimalDrawerWidth
 import org.koin.android.ext.android.inject
-import org.koin.core.KoinComponent
-import org.koin.core.inject
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import timber.log.Timber
 
 /**
@@ -77,12 +82,12 @@ open class MessageList :
     private val preferences: Preferences by inject()
     private val channelUtils: NotificationChannelManager by inject()
     private val defaultFolderProvider: DefaultFolderProvider by inject()
+    private val accountRemover: BackgroundAccountRemover by inject()
 
     private val storageListener: StorageListener = StorageListenerImplementation()
     private val permissionUiHelper: PermissionUiHelper = K9PermissionUiHelper(this)
 
-    private var actionBar: ActionBar? = null
-    private var drawerToggle: ActionBarDrawerToggle? = null
+    private lateinit var actionBar: ActionBar
     private var drawer: K9Drawer? = null
     private var openFolderTransaction: FragmentTransaction? = null
     private var menu: Menu? = null
@@ -119,7 +124,9 @@ open class MessageList :
         super.onCreate(savedInstanceState)
 
         val accounts = preferences.accounts
-        if (accounts.isEmpty()) {
+        deleteIncompleteAccounts(accounts)
+        val hasAccountSetup = accounts.any { it.isFinishedSetup }
+        if (!hasAccountSetup) {
             OnboardingActivity.launch(this)
             finish()
             return
@@ -143,6 +150,21 @@ open class MessageList :
             }
         }
 
+        window.statusBarColor = Color.TRANSPARENT
+
+        val rootLayout = findViewById<View>(R.id.drawerLayout)
+        rootLayout.systemUiVisibility = rootLayout.systemUiVisibility or View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        toolbar.setOnApplyWindowInsetsListener { view, insets ->
+            view.setPadding(view.paddingLeft, insets.systemWindowInsetTop, view.paddingRight, view.paddingBottom)
+            insets
+        }
+
+        val swipeRefreshLayout = findViewById<View>(R.id.material_drawer_swipe_refresh)
+        swipeRefreshLayout.layoutParams.width = getOptimalDrawerWidth(this)
+
         initializeActionBar()
         initializeDrawer(savedInstanceState)
 
@@ -151,6 +173,7 @@ open class MessageList :
         }
 
         if (isDrawerEnabled) {
+            configureDrawer()
             drawer!!.updateUserAccountsAndFolders(account)
         }
 
@@ -191,12 +214,19 @@ open class MessageList :
         }
 
         if (isDrawerEnabled) {
+            configureDrawer()
             drawer!!.updateUserAccountsAndFolders(account)
         }
 
         initializeDisplayMode(null)
         initializeFragments()
         displayViews()
+    }
+
+    private fun deleteIncompleteAccounts(accounts: List<Account>) {
+        accounts.filter { !it.isFinishedSetup }.forEach {
+            accountRemover.removeAccountAsync(it.uuid)
+        }
     }
 
     private fun findFragments() {
@@ -295,116 +325,144 @@ open class MessageList :
     }
 
     private fun decodeExtras(intent: Intent): Boolean {
-        val action = intent.action
-        if (Intent.ACTION_VIEW == action && intent.data != null) {
-            val uri = intent.data!!
-            val segmentList = uri.pathSegments
+        val launchData = decodeExtrasToLaunchData(intent)
 
-            val accountId = segmentList[0]
-            val accounts = preferences.availableAccounts
-            for (account in accounts) {
-                if (account.accountNumber.toString() == accountId) {
-                    val folderId = segmentList[1].toLong()
-                    val messageUid = segmentList[2]
-                    messageReference = MessageReference(account.uuid, folderId, messageUid, null)
-                    break
-                }
-            }
-        } else if (ACTION_SHORTCUT == action) {
-            // Handle shortcut intents
-            val specialFolder = intent.getStringExtra(EXTRA_SPECIAL_FOLDER)
-            if (SearchAccount.UNIFIED_INBOX == specialFolder) {
-                search = SearchAccount.createUnifiedInboxAccount().relatedSearch
-            }
-        } else if (intent.getStringExtra(SearchManager.QUERY) != null) {
-            // check if this intent comes from the system search ( remote )
-            if (Intent.ACTION_SEARCH == intent.action) {
-                // Query was received from Search Dialog
-                val query = intent.getStringExtra(SearchManager.QUERY).trim()
-
-                search = LocalSearch(getString(R.string.search_results))
-                search!!.isManualSearch = true
-                noThreading = true
-
-                search!!.or(SearchCondition(SearchField.SENDER, SearchSpecification.Attribute.CONTAINS, query))
-                search!!.or(SearchCondition(SearchField.SUBJECT, SearchSpecification.Attribute.CONTAINS, query))
-                search!!.or(SearchCondition(SearchField.MESSAGE_CONTENTS, SearchSpecification.Attribute.CONTAINS, query))
-
-                val appData = intent.getBundleExtra(SearchManager.APP_DATA)
-                if (appData != null) {
-                    val searchAccountUuid = appData.getString(EXTRA_SEARCH_ACCOUNT)
-                    if (searchAccountUuid != null) {
-                        search!!.addAccountUuid(searchAccountUuid)
-                        // searches started from a folder list activity will provide an account, but no folder
-                        if (appData.containsKey(EXTRA_SEARCH_FOLDER)) {
-                            val folderId = appData.getLong(EXTRA_SEARCH_FOLDER)
-                            search!!.addAllowedFolder(folderId)
-                        }
-                    } else if (BuildConfig.DEBUG) {
-                        throw AssertionError("Invalid app data in search intent")
-                    }
-                }
-            }
+        // If Unified Inbox was disabled show default account instead
+        val search = if (launchData.search.isUnifiedInbox && !K9.isShowUnifiedInbox) {
+            createDefaultLocalSearch()
         } else {
-            // regular LocalSearch object was passed
-            search = if (intent.hasExtra(EXTRA_SEARCH)) {
-                ParcelableUtil.unmarshall(intent.getByteArrayExtra(EXTRA_SEARCH), LocalSearch.CREATOR)
-            } else {
-                null
-            }
-            noThreading = intent.getBooleanExtra(EXTRA_NO_THREADING, false)
+            launchData.search
         }
 
-        if (messageReference == null) {
-            val messageReferenceString = intent.getStringExtra(EXTRA_MESSAGE_REFERENCE)
-            messageReference = MessageReference.parse(messageReferenceString)
+        // Don't switch the currently active account when opening the Unified Inbox
+        val account = account?.takeIf { launchData.search.isUnifiedInbox } ?: search.firstAccount()
+        if (account == null) {
+            finish()
+            return false
         }
 
-        if (messageReference != null) {
-            search = LocalSearch()
-            search!!.addAccountUuid(messageReference!!.accountUuid)
-            val folderId = messageReference!!.folderId
-            search!!.addAllowedFolder(folderId)
-        }
+        this.account = account
+        this.search = search
+        singleFolderMode = search.folderIds.size == 1
+        noThreading = launchData.noThreading
+        messageReference = launchData.messageReference
 
-        if (search == null) {
-            val accountUuid = intent.getStringExtra("account")
-            if (accountUuid != null) {
-                // We've most likely been started by an old unread widget or accounts shortcut
-                val folderServerId = intent.getStringExtra("folder")
-                val folderId: Long
-                if (folderServerId == null) {
-                    account = preferences.getAccount(accountUuid)
-                    folderId = defaultFolderProvider.getDefaultFolder(account!!)
-                } else {
-                    // FIXME: load folder ID for folderServerId
-                    folderId = 0
-                }
-                search = LocalSearch()
-                search!!.addAccountUuid(accountUuid)
-                search!!.addAllowedFolder(folderId)
-            } else {
-                if (K9.isHideSpecialAccounts) {
-                    account = preferences.defaultAccount
-                    search = LocalSearch()
-                    search!!.addAccountUuid(account!!.uuid)
-                    val folderId = defaultFolderProvider.getDefaultFolder(account!!)
-                    search!!.addAllowedFolder(folderId)
-                } else {
-                    account = null
-                    search = SearchAccount.createUnifiedInboxAccount().relatedSearch
-                }
-            }
-        }
-
-        initializeFromLocalSearch(search)
-
-        if (account != null && !account!!.isAvailable(this)) {
+        if (!account.isAvailable(this)) {
             onAccountUnavailable()
             return false
         }
 
         return true
+    }
+
+    private fun decodeExtrasToLaunchData(intent: Intent): LaunchData {
+        val action = intent.action
+        val data = intent.data
+        val queryString = intent.getStringExtra(SearchManager.QUERY)
+
+        if (action == Intent.ACTION_VIEW && data != null && data.pathSegments.size >= 3) {
+            val segmentList = data.pathSegments
+            val accountId = segmentList[0]
+            for (account in preferences.accounts) {
+                if (account.accountNumber.toString() == accountId) {
+                    val folderId = segmentList[1].toLong()
+                    val messageUid = segmentList[2]
+                    val messageReference = MessageReference(account.uuid, folderId, messageUid, null)
+
+                    return LaunchData(
+                        search = messageReference.toLocalSearch(),
+                        messageReference = messageReference
+                    )
+                }
+            }
+        } else if (action == ACTION_SHORTCUT) {
+            // Handle shortcut intents
+            val specialFolder = intent.getStringExtra(EXTRA_SPECIAL_FOLDER)
+            if (SearchAccount.UNIFIED_INBOX == specialFolder) {
+                return LaunchData(search = SearchAccount.createUnifiedInboxAccount().relatedSearch)
+            }
+        } else if (action == Intent.ACTION_SEARCH && queryString != null) {
+            // Query was received from Search Dialog
+            val query = queryString.trim()
+
+            val search = LocalSearch(getString(R.string.search_results)).apply {
+                isManualSearch = true
+                or(SearchCondition(SearchField.SENDER, SearchSpecification.Attribute.CONTAINS, query))
+                or(SearchCondition(SearchField.SUBJECT, SearchSpecification.Attribute.CONTAINS, query))
+                or(SearchCondition(SearchField.MESSAGE_CONTENTS, SearchSpecification.Attribute.CONTAINS, query))
+            }
+
+            val appData = intent.getBundleExtra(SearchManager.APP_DATA)
+            if (appData != null) {
+                val searchAccountUuid = appData.getString(EXTRA_SEARCH_ACCOUNT)
+                if (searchAccountUuid != null) {
+                    search.addAccountUuid(searchAccountUuid)
+                    // searches started from a folder list activity will provide an account, but no folder
+                    if (appData.containsKey(EXTRA_SEARCH_FOLDER)) {
+                        val folderId = appData.getLong(EXTRA_SEARCH_FOLDER)
+                        search.addAllowedFolder(folderId)
+                    }
+                } else if (BuildConfig.DEBUG) {
+                    throw AssertionError("Invalid app data in search intent")
+                }
+            }
+
+            return LaunchData(
+                search = search,
+                noThreading = true
+            )
+        } else if (intent.hasExtra(EXTRA_SEARCH)) {
+            // regular LocalSearch object was passed
+            val search = ParcelableUtil.unmarshall(intent.getByteArrayExtra(EXTRA_SEARCH), LocalSearch.CREATOR)
+            val noThreading = intent.getBooleanExtra(EXTRA_NO_THREADING, false)
+
+            return LaunchData(search = search, noThreading = noThreading)
+        } else if (intent.hasExtra(EXTRA_MESSAGE_REFERENCE)) {
+            val messageReferenceString = intent.getStringExtra(EXTRA_MESSAGE_REFERENCE)
+            val messageReference = MessageReference.parse(messageReferenceString)
+
+            if (messageReference != null) {
+                return LaunchData(
+                    search = messageReference.toLocalSearch(),
+                    messageReference = messageReference
+                )
+            }
+        } else if (intent.hasExtra("account")) {
+            val accountUuid = intent.getStringExtra("account")
+            if (accountUuid != null) {
+                // We've most likely been started by an old unread widget or accounts shortcut
+                val account = preferences.getAccount(accountUuid)
+                if (account == null) {
+                    Timber.d("Account %s not found.", accountUuid)
+                    return LaunchData(createDefaultLocalSearch())
+                }
+
+                val folderId = defaultFolderProvider.getDefaultFolder(account)
+                val search = LocalSearch().apply {
+                    addAccountUuid(accountUuid)
+                    addAllowedFolder(folderId)
+                }
+
+                return LaunchData(search = search)
+            }
+        }
+
+        // Default action
+        val search = if (K9.isShowUnifiedInbox) {
+            SearchAccount.createUnifiedInboxAccount().relatedSearch
+        } else {
+            createDefaultLocalSearch()
+        }
+
+        return LaunchData(search)
+    }
+
+    private fun createDefaultLocalSearch(): LocalSearch {
+        val account = preferences.defaultAccount ?: error("No default account available")
+        return LocalSearch().apply {
+            addAccountUuid(account.uuid)
+            addAllowedFolder(defaultFolderProvider.getDefaultFolder(account))
+        }
     }
 
     private fun checkAndRequestPermissions() {
@@ -462,34 +520,30 @@ open class MessageList :
     }
 
     private fun initializeActionBar() {
-        actionBar = supportActionBar
-        actionBar!!.setDisplayHomeAsUpEnabled(true)
+        actionBar = supportActionBar!!
+        actionBar.setDisplayHomeAsUpEnabled(true)
     }
 
     private fun initializeDrawer(savedInstanceState: Bundle?) {
         if (!isDrawerEnabled) {
+            val drawerLayout = findViewById<DrawerLayout>(R.id.drawerLayout)
+            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
             return
         }
 
         drawer = K9Drawer(this, savedInstanceState)
-
-        val drawerLayout = drawer!!.layout
-        drawerToggle = ActionBarDrawerToggle(
-            this, drawerLayout, null,
-            R.string.navigation_drawer_open, R.string.navigation_drawer_close
-        )
-        drawerLayout.addDrawerListener(drawerToggle!!)
-        drawerToggle!!.syncState()
     }
 
-    fun createOnDrawerListener(): OnDrawerListener {
-        return object : OnDrawerListener {
+    fun createDrawerListener(): DrawerListener {
+        return object : DrawerListener {
             override fun onDrawerClosed(drawerView: View) {
                 if (openFolderTransaction != null) {
                     openFolderTransaction!!.commit()
                     openFolderTransaction = null
                 }
             }
+
+            override fun onDrawerStateChanged(newState: Int) = Unit
 
             override fun onDrawerOpened(drawerView: View) = Unit
 
@@ -498,6 +552,11 @@ open class MessageList :
     }
 
     fun openFolder(folderId: Long) {
+        if (displayMode == DisplayMode.SPLIT_VIEW) {
+            removeMessageViewFragment()
+            showMessageViewPlaceHolder()
+        }
+
         val search = LocalSearch()
         search.addAccountUuid(account!!.uuid)
         search.addAllowedFolder(folderId)
@@ -512,8 +571,6 @@ open class MessageList :
     }
 
     fun openUnifiedInbox() {
-        account = null
-        drawer!!.selectUnifiedInbox()
         actionDisplaySearch(this, SearchAccount.createUnifiedInboxAccount().relatedSearch, false, false)
     }
 
@@ -574,12 +631,20 @@ open class MessageList :
             showMessageList()
         } else {
             if (isDrawerEnabled && account != null && supportFragmentManager.backStackEntryCount == 0) {
-                val defaultFolderId = defaultFolderProvider.getDefaultFolder(account!!)
-                val currentFolder = if (singleFolderMode) search!!.folderIds[0] else null
-                if (currentFolder == null || defaultFolderId != currentFolder) {
-                    openFolderImmediately(defaultFolderId)
+                if (K9.isShowUnifiedInbox) {
+                    if (search!!.id != SearchAccount.UNIFIED_INBOX) {
+                        openUnifiedInbox()
+                    } else {
+                        super.onBackPressed()
+                    }
                 } else {
-                    super.onBackPressed()
+                    val defaultFolderId = defaultFolderProvider.getDefaultFolder(account!!)
+                    val currentFolder = if (singleFolderMode) search!!.folderIds[0] else null
+                    if (currentFolder == null || defaultFolderId != currentFolder) {
+                        openFolderImmediately(defaultFolderId)
+                    } else {
+                        super.onBackPressed()
+                    }
                 }
             } else {
                 super.onBackPressed()
@@ -859,9 +924,8 @@ open class MessageList :
         } else if (id == R.id.move_to_drafts) {
             messageViewFragment!!.onMoveToDrafts()
             return true
-        } else if (id == R.id.show_headers || id == R.id.hide_headers) {
-            messageViewFragment!!.onToggleAllHeadersView()
-            updateMenu()
+        } else if (id == R.id.show_headers) {
+            startActivity(MessageSourceActivity.createLaunchIntent(this, messageViewFragment!!.messageReference))
             return true
         }
 
@@ -929,7 +993,6 @@ open class MessageList :
             menu.findItem(R.id.toggle_unread).isVisible = false
             menu.findItem(R.id.toggle_message_view_theme).isVisible = false
             menu.findItem(R.id.show_headers).isVisible = false
-            menu.findItem(R.id.hide_headers).isVisible = false
         } else {
             // hide prev/next buttons in split mode
             if (displayMode != DisplayMode.MESSAGE_VIEW) {
@@ -1011,12 +1074,6 @@ open class MessageList :
             if (messageViewFragment!!.isOutbox) {
                 menu.findItem(R.id.move_to_drafts).isVisible = true
             }
-
-            if (messageViewFragment!!.allHeadersVisible()) {
-                menu.findItem(R.id.show_headers).isVisible = false
-            } else {
-                menu.findItem(R.id.hide_headers).isVisible = false
-            }
         }
 
         // Set visibility of menu items related to the message list
@@ -1066,7 +1123,7 @@ open class MessageList :
     }
 
     fun setActionBarTitle(title: String) {
-        actionBar!!.title = title
+        actionBar.title = title
     }
 
     override fun setMessageListTitle(title: String) {
@@ -1084,7 +1141,7 @@ open class MessageList :
     }
 
     override fun openMessage(messageReference: MessageReference) {
-        val account = preferences.getAccount(messageReference.accountUuid)
+        val account = preferences.getAccount(messageReference.accountUuid) ?: error("Account not found")
         val folderId = messageReference.folderId
 
         val draftsFolderId = account.draftsFolderId
@@ -1384,21 +1441,19 @@ open class MessageList :
 
     private fun lockDrawer() {
         drawer!!.lock()
-        drawerToggle!!.isDrawerIndicatorEnabled = false
+        actionBar.setHomeAsUpIndicator(R.drawable.ic_arrow_back)
     }
 
     private fun unlockDrawer() {
         drawer!!.unlock()
-        drawerToggle!!.isDrawerIndicatorEnabled = true
+        actionBar.setHomeAsUpIndicator(R.drawable.ic_menu)
     }
 
     private fun initializeFromLocalSearch(search: LocalSearch?) {
         this.search = search
         singleFolderMode = false
 
-        if (search!!.searchAllAccounts()) {
-            account = null
-        } else {
+        if (!search!!.searchAllAccounts()) {
             val accountUuids = search.accountUuids
             if (accountUuids.size == 1) {
                 account = preferences.getAccount(accountUuids[0])
@@ -1412,10 +1467,32 @@ open class MessageList :
         configureDrawer()
     }
 
+    private fun LocalSearch.firstAccount(): Account? {
+        return if (searchAllAccounts()) {
+            preferences.defaultAccount
+        } else {
+            val accountUuid = accountUuids.first()
+            preferences.getAccount(accountUuid)
+        }
+    }
+
+    private val LocalSearch.isUnifiedInbox: Boolean
+        get() = id == SearchAccount.UNIFIED_INBOX
+
+    private fun MessageReference.toLocalSearch(): LocalSearch {
+        return LocalSearch().apply {
+            addAccountUuid(accountUuid)
+            addAllowedFolder(folderId)
+        }
+    }
+
     private fun configureDrawer() {
         val drawer = drawer ?: return
+        drawer.selectAccount(account!!.uuid)
         when {
             singleFolderMode -> drawer.selectFolder(search!!.folderIds[0])
+            // Don't select any item in the drawer because the Unified Inbox is displayed, but not listed in the drawer
+            search!!.id == SearchAccount.UNIFIED_INBOX && !K9.isShowUnifiedInbox -> drawer.deselect()
             search!!.id == SearchAccount.UNIFIED_INBOX -> drawer.selectUnifiedInbox()
             else -> drawer.deselect()
         }
@@ -1446,6 +1523,12 @@ open class MessageList :
     private enum class DisplayMode {
         MESSAGE_LIST, MESSAGE_VIEW, SPLIT_VIEW
     }
+
+    private class LaunchData(
+        val search: LocalSearch,
+        val messageReference: MessageReference? = null,
+        val noThreading: Boolean = false
+    )
 
     companion object : KoinComponent {
         private const val EXTRA_SEARCH = "search_bytes"

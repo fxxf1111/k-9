@@ -9,10 +9,18 @@
   <!--Used in the about dialog-->
   <string name="app_authors">Los paseadores del perro K-9</string>
   <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Partes del Copyright 2006-<xliff:g>%s</xliff:g> Android Open Source Project.</string>
-  <string name="source_code">Fuente</string>
+  <string name="source_code">Código fuente</string>
   <string name="app_license">Apache License, Version 2.0</string>
+  <string name="about_project_title">Proyecto de Código Abierto</string>
+  <string name="about_website_title">Sitio web</string>
+  <string name="user_forum_title">Usuario del foro</string>
+  <string name="about_fediverse_title">Fediverse</string>
+  <string name="about_twitter_title">Twitter</string>
   <string name="about_libraries">Librerías</string>
   <string name="license">Licencia</string>
+  <string name="changelog_title">Registro de cambios</string>
+  <string name="changelog_loading_error">No se pudo cargar el registro de cambios.</string>
+  <string name="changelog_version_title">Versión %s</string>
   <!--Welcome message-->
   <string name="welcome_message_title">Bienvenido a K-9 Mail</string>
   <string name="accounts_welcome"><![CDATA[
@@ -108,7 +116,7 @@ Por favor informe de fallos, aporte nueva funcionalidad o envíe sus preguntas a
   <string name="search_results">Resultados búsqueda</string>
   <string name="preferences_action">Configuración</string>
   <string name="folders_action">Administrar carpetas</string>
-  <string name="account_settings_action">Configuración de cuenta</string>
+  <string name="account_settings_action">Configuración de la cuenta</string>
   <string name="remove_account_action">Eliminar cuenta</string>
   <string name="mark_as_read_action">Marcar como leído</string>
   <string name="send_alternate_action">Compartir</string>
@@ -117,7 +125,6 @@ Por favor informe de fallos, aporte nueva funcionalidad o envíe sus preguntas a
   <string name="unflag_action">Borrar estrella</string>
   <string name="copy_action">Copiar</string>
   <string name="show_headers_action">Mostrar cabeceras</string>
-  <string name="hide_headers_action">Ocultar cabeceras</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Se ha copiado la dirección al portapapeles</item>
     <item quantity="other">Se han copiado las direcciones al portapeles</item>
@@ -163,7 +170,7 @@ Por favor informe de fallos, aporte nueva funcionalidad o envíe sus preguntas a
   <string name="notification_action_archive_all">Archivar todo</string>
   <string name="notification_action_spam">Correo no deseado</string>
   <string name="notification_certificate_error_title">Error de certificado para <xliff:g id="account">%s</xliff:g></string>
-  <string name="notification_certificate_error_text">Compruebe su configuración de servidor</string>
+  <string name="notification_certificate_error_text">Compruebe su configuración del servidor</string>
   <string name="notification_authentication_error_title">Fallo de autenticación</string>
   <string name="notification_authentication_error_text">Fallo de autenticación para <xliff:g id="account">%s</xliff:g>. Actualice la configuración del servidor.</string>
   <string name="notification_bg_sync_ticker">Comprobando correo: <xliff:g id="account">%s</xliff:g>:<xliff:g id="folder">%s</xliff:g></string>
@@ -578,6 +585,7 @@ Por favor informe de fallos, aporte nueva funcionalidad o envíe sus preguntas a
   <string name="manage_identities_title">Gestionar identidades</string>
   <string name="manage_identities_context_menu_title">Gestionar identidad</string>
   <string name="edit_identity_title">Editar identidad</string>
+  <string name="edit_identity_save">Guardar</string>
   <string name="new_identity_action">Nueva identidad</string>
   <string name="account_settings_always_bcc_label">Cco en todos los mensajes para</string>
   <string name="manage_identities_edit_action">Editar</string>
@@ -678,7 +686,7 @@ Por favor informe de fallos, aporte nueva funcionalidad o envíe sus preguntas a
   <string name="volume_navigation_title">Navegación con teclas de volumen</string>
   <string name="volume_navigation_message">Vista de mensaje</string>
   <string name="volume_navigation_list">Listas de mensajes</string>
-  <string name="hide_special_accounts_title">Ocultar bandeja unificada</string>
+  <string name="show_unified_inbox_title">Mostrar bandeja de entrada unificada</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier"> - No leído</string>
   <string name="search_all_messages_title">Todos los mensajes</string>
@@ -1035,4 +1043,5 @@ Puede mantener este mensaje y usarlo como copia de seguridad de su clave secreta
   <!--permissions-->
   <string name="permission_contacts_rationale_title">Permitir acceso a contactos</string>
   <string name="permission_contacts_rationale_message">Para poder proveer sugerencias de contactos y mostrar sus nombres, la app necesita acceso a éstos.</string>
+  <string name="generic_loading_error">Se produjo un error al cargar los datos</string>
 </resources>

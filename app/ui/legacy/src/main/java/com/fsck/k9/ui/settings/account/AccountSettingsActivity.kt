@@ -13,9 +13,7 @@ import com.fsck.k9.ui.R
 import com.fsck.k9.ui.base.K9Activity
 import com.fsck.k9.ui.fragmentTransaction
 import com.fsck.k9.ui.fragmentTransactionWithBackStack
-import com.fsck.k9.ui.observe
 import com.fsck.k9.ui.observeNotNull
-import kotlinx.android.synthetic.main.activity_account_settings.*
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import timber.log.Timber
 
@@ -25,9 +23,13 @@ class AccountSettingsActivity : K9Activity(), OnPreferenceStartScreenCallback {
     private var startScreenKey: String? = null
     private var fragmentAdded = false
 
+    private lateinit var accountSpinner: AccountSelectionSpinner
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setLayout(R.layout.activity_account_settings)
+
+        accountSpinner = findViewById(R.id.accountSpinner)
 
         initializeActionBar()
 
@@ -59,7 +61,7 @@ class AccountSettingsActivity : K9Activity(), OnPreferenceStartScreenCallback {
     }
 
     private fun onAccountSelected(selectedAccountUuid: String) {
-        if (selectedAccountUuid != accountUuid) {
+        if (selectedAccountUuid != accountUuid && !isFinishing) {
             start(this, selectedAccountUuid)
             finish()
         }

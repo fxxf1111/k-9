@@ -8,10 +8,17 @@
   <string name="unread_widget_label">K-9 Nepřečtená</string>
   <!--Used in the about dialog-->
   <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Portions Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
-  <string name="source_code">Zdrojové kódy</string>
+  <string name="source_code">Zdrojový kód</string>
   <string name="app_license">Apache License, verze 2.0</string>
+  <string name="about_project_title">Projekt s otevřeným zdrojovým kódem</string>
+  <string name="about_website_title">Webová stránka</string>
+  <string name="user_forum_title">Uživatelské fórum</string>
+  <string name="about_twitter_title">Twitter</string>
   <string name="about_libraries">Softwarové knihovny</string>
   <string name="license">Licence</string>
+  <string name="changelog_title">Soupis změn</string>
+  <string name="changelog_loading_error">Nelze nahrát soupis změn.</string>
+  <string name="changelog_version_title">Verze %s</string>
   <!--Welcome message-->
   <string name="welcome_message_title">Vítejte v K-9 Mail</string>
   <string name="accounts_welcome"><![CDATA[
@@ -116,7 +123,6 @@ Hlášení o chyb, úpravy pro nové funkce a dotazy zadávejte prostřednictví
   <string name="unflag_action">Odebrat \u2606</string>
   <string name="copy_action">Kopírovat</string>
   <string name="show_headers_action">Zobraz hlavičku</string>
-  <string name="hide_headers_action">Skryj hlavičku</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Adresa zkopírována do schránky</item>
     <item quantity="few">Adresy zkopírovány do schránky</item>
@@ -568,6 +574,7 @@ Hlášení o chyb, úpravy pro nové funkce a dotazy zadávejte prostřednictví
   <string name="manage_identities_title">Správa identit</string>
   <string name="manage_identities_context_menu_title">Spravovat identitu</string>
   <string name="edit_identity_title">Upravit identitu</string>
+  <string name="edit_identity_save">Uložit</string>
   <string name="new_identity_action">Nová identita</string>
   <string name="account_settings_always_bcc_label">Kopii všech zpráv na adresu</string>
   <string name="manage_identities_edit_action">Upravit</string>
@@ -668,7 +675,7 @@ Hlášení o chyb, úpravy pro nové funkce a dotazy zadávejte prostřednictví
   <string name="volume_navigation_title">Navigace tlačítky hlasitosti</string>
   <string name="volume_navigation_message">Zobrazení zpráv</string>
   <string name="volume_navigation_list">Různá zobrazení seznamů</string>
-  <string name="hide_special_accounts_title">Skrýt sjednocenou příchozí poštu</string>
+  <string name="show_unified_inbox_title">Ukázat sjednocený pohled na doručenou poštu</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier"> - Nepřečtené</string>
   <string name="search_all_messages_title">Všechny zprávy</string>
@@ -721,6 +728,7 @@ Hlášení o chyb, úpravy pro nové funkce a dotazy zadávejte prostřednictví
   <string name="send_failed_reason">Odeslání se nezdařilo: %s</string>
   <string name="save_or_discard_draft_message_dlg_title">Uložit koncept zprávy?</string>
   <string name="save_or_discard_draft_message_instructions_fmt">Uložit nebo zahodit tuto zprávu?</string>
+  <string name="save_or_discard_draft_message_changes">Uložit nebo zahodit změny?</string>
   <string name="confirm_discard_draft_message_title">Zahodit zprávu?</string>
   <string name="confirm_discard_draft_message">Opravdu chcete tuto zprávu zahodit?</string>
   <string name="select_text_now">Vyberte text pro kopírování.</string>
@@ -1034,4 +1042,5 @@ Tuto zprávu si můžete ponechat a použít jí jako zálohu svého tajného kl
   <!--permissions-->
   <string name="permission_contacts_rationale_title">Umožnit přístup ke kontaktům</string>
   <string name="permission_contacts_rationale_message">Aby bylo možné poskytovat automatické dopisování kontaktů a zobrazovat jména a fotky kontaktů, aplikace potřebuje přístup k vašim kontaktům.</string>
+  <string name="generic_loading_error">Nastala chyba při nahrávání dat</string>
 </resources>

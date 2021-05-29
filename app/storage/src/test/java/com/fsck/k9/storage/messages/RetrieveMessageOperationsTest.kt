@@ -1,8 +1,12 @@
 package com.fsck.k9.storage.messages
 
+import com.fsck.k9.mail.Flag
+import com.fsck.k9.mail.Header
 import com.fsck.k9.mail.MessagingException
+import com.fsck.k9.mail.crlf
 import com.fsck.k9.storage.RobolectricTest
 import com.google.common.truth.Truth.assertThat
+import java.util.Date
 import org.junit.Test
 
 class RetrieveMessageOperationsTest : RobolectricTest() {
@@ -44,5 +48,162 @@ class RetrieveMessageOperationsTest : RobolectricTest() {
                 messageId4 to "uid4"
             )
         )
+    }
+
+    @Test
+    fun `get all message server ids`() {
+        sqliteDatabase.createMessage(folderId = 1, uid = "uid1")
+        sqliteDatabase.createMessage(folderId = 1, uid = "K9LOCAL:1")
+        sqliteDatabase.createMessage(folderId = 1, uid = "uid3")
+        sqliteDatabase.createMessage(folderId = 1, uid = "uid4")
+
+        val messageServerIds = retrieveMessageOperations.getMessageServerIds(folderId = 1)
+
+        assertThat(messageServerIds).isEqualTo(setOf("uid1", "uid3", "uid4"))
+    }
+
+    @Test
+    fun `check if message is present`() {
+        sqliteDatabase.createMessage(folderId = 1, uid = "uid1")
+
+        val result = retrieveMessageOperations.isMessagePresent(folderId = 1, messageServerId = "uid1")
+
+        assertThat(result).isTrue()
+    }
+
+    @Test
+    fun `check if non-existent message is present`() {
+        val result = retrieveMessageOperations.isMessagePresent(folderId = 1, messageServerId = "uid1")
+
+        assertThat(result).isFalse()
+    }
+
+    @Test
+    fun `get message flags`() {
+        sqliteDatabase.createMessage(
+            folderId = 1,
+            uid = "uid1",
+            flags = "DRAFT,RECENT,X_DESTROYED,X_SEND_FAILED,X_SEND_IN_PROGRESS,X_DOWNLOADED_FULL," +
+                "X_DOWNLOADED_PARTIAL,X_REMOTE_COPY_STARTED,X_MIGRATED_FROM_V50,X_DRAFT_OPENPGP_INLINE," +
+                "X_SUBJECT_DECRYPTED",
+            deleted = true,
+            read = true,
+            flagged = true,
+            answered = true,
+            forwarded = true
+        )
+
+        val flags = retrieveMessageOperations.getMessageFlags(folderId = 1, messageServerId = "uid1")
+
+        assertThat(flags).isEqualTo(
+            setOf(
+                Flag.DELETED,
+                Flag.SEEN,
+                Flag.ANSWERED,
+                Flag.FLAGGED,
+                Flag.DRAFT,
+                Flag.RECENT,
+                Flag.FORWARDED,
+                Flag.X_DESTROYED,
+                Flag.X_SEND_FAILED,
+                Flag.X_SEND_IN_PROGRESS,
+                Flag.X_DOWNLOADED_FULL,
+                Flag.X_DOWNLOADED_PARTIAL,
+                Flag.X_REMOTE_COPY_STARTED,
+                Flag.X_MIGRATED_FROM_V50,
+                Flag.X_DRAFT_OPENPGP_INLINE,
+                Flag.X_SUBJECT_DECRYPTED
+            )
+        )
+    }
+
+    @Test
+    fun `get message flags without any flags set`() {
+        sqliteDatabase.createMessage(folderId = 1, uid = "uid1", flags = "")
+
+        val flags = retrieveMessageOperations.getMessageFlags(folderId = 1, messageServerId = "uid1")
+
+        assertThat(flags).isEmpty()
+    }
+
+    @Test
+    fun `get all message server ids and dates`() {
+        sqliteDatabase.createMessage(folderId = 1, uid = "uid1", date = 23)
+        sqliteDatabase.createMessage(folderId = 1, uid = "K9LOCAL:1")
+        sqliteDatabase.createMessage(folderId = 1, uid = "uid3", date = 42)
+        sqliteDatabase.createMessage(folderId = 1, uid = "uid4", deleted = true)
+
+        val result = retrieveMessageOperations.getAllMessagesAndEffectiveDates(folderId = 1)
+
+        assertThat(result).isEqualTo(
+            mapOf(
+                "uid1" to 23L,
+                "uid3" to 42L
+            )
+        )
+    }
+
+    @Test
+    fun `get headers`() {
+        val messagePartId = sqliteDatabase.createMessagePart(
+            header = """
+                From: <alice@domain.example>
+                To: Bob <bob@domain.example>
+                Date: Thu, 01 Apr 2021 01:23:45 +0200
+                Subject: Test
+                Message-Id: <20210401012345.123456789A@domain.example>
+            """.trimIndent().crlf()
+        )
+        sqliteDatabase.createMessage(folderId = 1, uid = "uid1", messagePartId = messagePartId)
+
+        val headers = retrieveMessageOperations.getHeaders(folderId = 1, messageServerId = "uid1")
+
+        assertThat(headers).isEqualTo(
+            listOf(
+                Header("From", "<alice@domain.example>"),
+                Header("To", "Bob <bob@domain.example>"),
+                Header("Date", "Thu, 01 Apr 2021 01:23:45 +0200"),
+                Header("Subject", "Test"),
+                Header("Message-Id", "<20210401012345.123456789A@domain.example>")
+            )
+        )
+    }
+
+    @Test
+    fun `get highest message uid`() {
+        val folderId = sqliteDatabase.createFolder()
+        sqliteDatabase.createMessage(uid = "42", folderId = folderId)
+        sqliteDatabase.createMessage(uid = "23", folderId = folderId)
+        sqliteDatabase.createMessage(uid = "27", folderId = folderId)
+
+        val highestUid = retrieveMessageOperations.getLastUid(folderId)
+
+        assertThat(highestUid).isEqualTo(42)
+    }
+
+    @Test
+    fun `get highest message uid should return null if there are no messages`() {
+        val folderId = sqliteDatabase.createFolder()
+
+        val highestUid = retrieveMessageOperations.getLastUid(folderId)
+
+        assertThat(highestUid).isNull()
+    }
+
+    @Test
+    fun `get oldest message date`() {
+        sqliteDatabase.createMessage(folderId = 1, date = 42)
+        sqliteDatabase.createMessage(folderId = 1, date = 23)
+
+        val oldestMessageDate = retrieveMessageOperations.getOldestMessageDate(folderId = 1)
+
+        assertThat(oldestMessageDate).isEqualTo(Date(23))
+    }
+
+    @Test
+    fun `get oldest message date without any messages in the store`() {
+        val oldestMessageDate = retrieveMessageOperations.getOldestMessageDate(folderId = 1)
+
+        assertThat(oldestMessageDate).isNull()
     }
 }

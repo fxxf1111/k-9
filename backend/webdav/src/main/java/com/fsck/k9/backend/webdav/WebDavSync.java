@@ -10,6 +10,7 @@ import com.fsck.k9.helper.ExceptionHelper;
 import com.fsck.k9.mail.AuthenticationFailedException;
 import com.fsck.k9.mail.FetchProfile;
 import com.fsck.k9.mail.Flag;
+import com.fsck.k9.mail.MessageDownloadState;
 import com.fsck.k9.mail.MessageRetrievalListener;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.store.webdav.WebDavFolder;
@@ -332,21 +333,6 @@ class WebDavSync {
 
         Timber.d("SYNC: Synced remote messages for folder %s, %d new messages", folder, newMessages.get());
 
-        // If the oldest message seen on this sync is newer than
-        // the oldest message seen on the previous sync, then
-        // we want to move our high-water mark forward
-        // this is all here just for pop which only syncs inbox
-        // this would be a little wrong for IMAP (we'd want a folder-level pref, not an account level pref.)
-        // fortunately, we just don't care.
-        Date oldestMessageTime = backendFolder.getOldestMessageDate();
-
-        if (oldestMessageTime != null) {
-            if (oldestMessageTime.before(downloadStarted) &&
-                    oldestMessageTime.after(backendFolder.getLatestOldMessageSeenTime())) {
-                backendFolder.setLatestOldMessageSeenTime(oldestMessageTime);
-            }
-        }
-
         return newMessages.get();
     }
 
@@ -379,9 +365,9 @@ class WebDavSync {
                 // Store the updated message locally
                 boolean completeMessage = message.isSet(Flag.X_DOWNLOADED_FULL);
                 if (completeMessage) {
-                    backendFolder.saveCompleteMessage(message);
+                    backendFolder.saveMessage(message, MessageDownloadState.FULL);
                 } else {
-                    backendFolder.savePartialMessage(message);
+                    backendFolder.saveMessage(message, MessageDownloadState.PARTIAL);
                 }
 
                 listener.syncNewMessage(folder, messageServerId, false);
@@ -481,7 +467,7 @@ class WebDavSync {
                         try {
 
                             // Store the updated message locally
-                            backendFolder.saveCompleteMessage(message);
+                            backendFolder.saveMessage(message, MessageDownloadState.FULL);
                             progress.incrementAndGet();
 
                             // Increment the number of "new messages" if the newly downloaded message is
@@ -597,9 +583,9 @@ class WebDavSync {
 
         // Store the updated message locally
         if (completeMessage) {
-            backendFolder.saveCompleteMessage(message);
+            backendFolder.saveMessage(message, MessageDownloadState.FULL);
         } else {
-            backendFolder.savePartialMessage(message);
+            backendFolder.saveMessage(message, MessageDownloadState.PARTIAL);
         }
     }
 

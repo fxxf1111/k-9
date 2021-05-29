@@ -9,10 +9,18 @@
   <!--Used in the about dialog-->
   <string name="app_authors">The K-9 Dog Walkers</string>
   <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Portions Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
-  <string name="source_code">Sorgenti</string>
+  <string name="source_code">Codice sorgente</string>
   <string name="app_license">Apache License, Versione 2.0</string>
+  <string name="about_project_title">Progetto Open Source</string>
+  <string name="about_website_title">Sito web</string>
+  <string name="user_forum_title">Forum utenti</string>
+  <string name="about_fediverse_title">Fediverse</string>
+  <string name="about_twitter_title">Twitter</string>
   <string name="about_libraries">Librerie</string>
   <string name="license">Licenza</string>
+  <string name="changelog_title">Novità</string>
+  <string name="changelog_loading_error">Impossibile caricare le novità.</string>
+  <string name="changelog_version_title">Versione %s</string>
   <!--Welcome message-->
   <string name="welcome_message_title">Benvenuto in K-9 Mail</string>
   <string name="accounts_welcome"><![CDATA[
@@ -118,7 +126,6 @@ Invia segnalazioni di bug, contribuisci con nuove funzionalità e poni domande s
   <string name="unflag_action">Rimuovi stella</string>
   <string name="copy_action">Copia</string>
   <string name="show_headers_action">Mostra intestazioni</string>
-  <string name="hide_headers_action">Nascondi intestazioni</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Indirizzo copiato negli appunti </item>
     <item quantity="other">IndirizzI copiati negli appunti</item>
@@ -580,6 +587,7 @@ Invia segnalazioni di bug, contribuisci con nuove funzionalità e poni domande s
   <string name="manage_identities_title">Gestione identità</string>
   <string name="manage_identities_context_menu_title">Gestione identità</string>
   <string name="edit_identity_title">Modifica identità</string>
+  <string name="edit_identity_save">Salva</string>
   <string name="new_identity_action">Nuova identità</string>
   <string name="account_settings_always_bcc_label">Invia in Ccn tutti i messaggi a</string>
   <string name="manage_identities_edit_action">Modifica</string>
@@ -680,7 +688,7 @@ Invia segnalazioni di bug, contribuisci con nuove funzionalità e poni domande s
   <string name="volume_navigation_title">Navigazione con tasti volume</string>
   <string name="volume_navigation_message">In visualizzazione messaggi</string>
   <string name="volume_navigation_list">In visualizzazione elenco</string>
-  <string name="hide_special_accounts_title">Nascondi Posta in arrivo combinata</string>
+  <string name="show_unified_inbox_title">Mosta posta in arrivo combinata</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier">- Non letto</string>
   <string name="search_all_messages_title">Tutti i messaggi</string>
@@ -733,6 +741,7 @@ Invia segnalazioni di bug, contribuisci con nuove funzionalità e poni domande s
   <string name="send_failed_reason">Invio non riuscito: %s</string>
   <string name="save_or_discard_draft_message_dlg_title">Vuoi salvare la bozza?</string>
   <string name="save_or_discard_draft_message_instructions_fmt">Vuoi salvare o scartare questo messaggio?</string>
+  <string name="save_or_discard_draft_message_changes">Vuoi salvare o scartare le modifiche?</string>
   <string name="confirm_discard_draft_message_title">Vuoi eliminare il messaggio?</string>
   <string name="confirm_discard_draft_message">Sei sicuro di voler eliminare questo messaggio?</string>
   <string name="select_text_now">Seleziona il testo da copiare.</string>
@@ -953,7 +962,7 @@ Invia segnalazioni di bug, contribuisci con nuove funzionalità e poni domande s
   <string name="crypto_msg_encrypted_sign_error">ma i dati end-to-end presentano errori</string>
   <string name="crypto_msg_encrypted_insecure">ma la cifratura non è considerata sicura</string>
   <string name="crypto_info_ok">OK</string>
-  <string name="crypto_info_search_key">Chuave di ricerca</string>
+  <string name="crypto_info_search_key">Chiave di ricerca</string>
   <string name="crypto_info_view_signer">Visualizza firmatario</string>
   <string name="crypto_info_view_sender">Visualizza mittente</string>
   <string name="crypto_info_view_security_warning">Dettagli</string>
@@ -984,7 +993,7 @@ Invia segnalazioni di bug, contribuisci con nuove funzionalità e poni domande s
   <string name="crypto_no_provider_message">Questo messaggio è stato cifrato con OpenPGP.\nPer leggerlo, devi installare e configurare un\'applicazione compatibile con OpenPGP.</string>
   <string name="crypto_no_provider_button">Vai alle impostazioni</string>
   <string name="mail_list_widget_text">Elenco messaggi di K-9</string>
-  <string name="mail_list_widget_loading">Caricamento messaggi in corso…</string>
+  <string name="mail_list_widget_loading">Caricamento messaggi…</string>
   <string name="fetching_folders_failed">Recupero elenco cartelle non riuscito</string>
   <string name="error_recipient_crypto_retrieve">Errore durante il recupero dello stato del destinatario dal fornitore OpenPGP!</string>
   <string name="openpgp_enabled_error_title">Cifratura non possibile</string>
@@ -1029,7 +1038,7 @@ Per configurare il tuo nuovo dispositivo per Autocrypt, segui le istruzioni che 
 
 Puoi conservare questo messaggio e utilizza come una copia di sicurezza della tua chiave segreta. Se intendi farlo, dovresti annotare la password e conservarla in modo sicuro.
 </string>
-  <string name="ac_transfer_error_send">Si è  verificato un errore durante l\'invio del messaggio. Controlla la tua connessione di rete e la configurazione del server di uscita.</string>
+  <string name="ac_transfer_error_send">Si è verificato un errore durante l\'invio del messaggio. Controlla la tua connessione di rete e la configurazione del server di uscita.</string>
   <string name="switch_on">On</string>
   <string name="switch_off">Off</string>
   <string name="navigation_drawer_open">Apri</string>
@@ -1037,4 +1046,5 @@ Puoi conservare questo messaggio e utilizza come una copia di sicurezza della tu
   <!--permissions-->
   <string name="permission_contacts_rationale_title">Consenti l\'accesso ai contatti</string>
   <string name="permission_contacts_rationale_message">Per poter fornire suggerimenti sui contatti e per visualizzare i nomi e le foto dei contatti, l\'applicazione ha bisogno di accedere ai tuoi contatti.</string>
+  <string name="generic_loading_error">Si è verificato un errore durante il caricamento dei dati</string>
 </resources>

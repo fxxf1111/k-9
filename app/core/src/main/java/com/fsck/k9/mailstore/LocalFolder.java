@@ -9,14 +9,10 @@ import androidx.annotation.NonNull;
 
 import androidx.annotation.Nullable;
 import com.fsck.k9.Account;
-import com.fsck.k9.DI;
 import com.fsck.k9.K9;
 import com.fsck.k9.controller.MessageReference;
-import com.fsck.k9.crypto.EncryptionExtractor;
-import com.fsck.k9.crypto.EncryptionResult;
 import com.fsck.k9.helper.FileHelper;
 import com.fsck.k9.helper.Utility;
-import com.fsck.k9.mail.Address;
 import com.fsck.k9.mail.Body;
 import com.fsck.k9.mail.BodyPart;
 import com.fsck.k9.mail.BoundaryGenerator;
@@ -25,7 +21,6 @@ import com.fsck.k9.mail.Flag;
 import com.fsck.k9.mail.FolderClass;
 import com.fsck.k9.mail.FolderType;
 import com.fsck.k9.mail.Message;
-import com.fsck.k9.mail.Message.RecipientType;
 import com.fsck.k9.mail.MessageRetrievalListener;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Multipart;
@@ -33,21 +28,13 @@ import com.fsck.k9.mail.Part;
 import com.fsck.k9.mail.filter.CountingOutputStream;
 import com.fsck.k9.mail.internet.BinaryTempFileBody;
 import com.fsck.k9.mail.internet.MimeHeader;
-import com.fsck.k9.mail.internet.MimeMessage;
 import com.fsck.k9.mail.internet.MimeMultipart;
 import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mail.internet.SizeAware;
 import com.fsck.k9.mail.message.MessageHeaderParser;
 import com.fsck.k9.mailstore.LockableDatabase.DbCallback;
 import com.fsck.k9.mailstore.LockableDatabase.WrappedException;
-import com.fsck.k9.message.extractors.AttachmentCounter;
 import com.fsck.k9.message.extractors.AttachmentInfoExtractor;
-import com.fsck.k9.message.extractors.MessageFulltextCreator;
-import com.fsck.k9.message.extractors.MessagePreviewCreator;
-import com.fsck.k9.message.extractors.PreviewResult;
-import com.fsck.k9.message.extractors.PreviewResult.PreviewType;
-import com.fsck.k9.preferences.Storage;
-import com.fsck.k9.preferences.StorageEditor;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.james.mime4j.util.MimeUtil;
@@ -67,8 +54,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
-import java.util.UUID;
 
 import timber.log.Timber;
 
@@ -80,7 +65,6 @@ public class LocalFolder {
 
     private final LocalStore localStore;
     private final AttachmentInfoExtractor attachmentInfoExtractor;
-    private final EncryptionExtractor encryptionExtractor = DI.get(EncryptionExtractor.class);
 
 
     private String status = null;
@@ -90,7 +74,6 @@ public class LocalFolder {
     private String name;
     private long databaseId = -1L;
     private int visibleLimit = -1;
-    private String prefId = null;
 
     private FolderClass displayClass = FolderClass.NO_CLASS;
     private FolderClass syncClass = FolderClass.INHERITED;
@@ -273,52 +256,6 @@ public class LocalFolder {
                 }
             }
         });
-    }
-
-    PreferencesHolder getPreferencesHolder() {
-        PreferencesHolder preferencesHolder = new PreferencesHolder();
-
-        Storage storage = localStore.getPreferences().getStorage();
-        String prefId = getPrefId(serverId);
-
-        String displayModeString = storage.getString(prefId + ".displayMode", null);
-        if (displayModeString != null) {
-            preferencesHolder.displayClass = FolderClass.valueOf(displayModeString);
-        }
-
-        String notifyModeString = storage.getString(prefId + ".notifyMode", null);
-        if (notifyModeString != null) {
-            preferencesHolder.notifyClass = FolderClass.valueOf(notifyModeString);
-        }
-
-        String syncModeString = storage.getString(prefId + ".syncMode", null);
-        if (syncModeString != null) {
-            preferencesHolder.syncClass = FolderClass.valueOf(syncModeString);
-        }
-
-        String pushModeString = storage.getString(prefId + ".pushMode", null);
-        if (pushModeString != null) {
-            preferencesHolder.pushClass = FolderClass.valueOf(pushModeString);
-        }
-
-        if (storage.contains(prefId + ".inTopGroup")) {
-            preferencesHolder.inTopGroup = storage.getBoolean(prefId + ".inTopGroup", isInTopGroup);
-        }
-
-        if (storage.contains(prefId + ".integrate")) {
-            preferencesHolder.integrate = storage.getBoolean(prefId + ".integrate", isIntegrate);
-        }
-
-        return preferencesHolder;
-    }
-
-    class PreferencesHolder {
-        FolderClass displayClass = LocalFolder.this.displayClass;
-        FolderClass syncClass = LocalFolder.this.syncClass;
-        FolderClass notifyClass = LocalFolder.this.notifyClass;
-        FolderClass pushClass = LocalFolder.this.pushClass;
-        boolean inTopGroup = isInTopGroup;
-        boolean integrate = isIntegrate;
     }
 
     public int getMessageCount() throws MessagingException {
@@ -511,29 +448,6 @@ public class LocalFolder {
         return localOnly;
     }
 
-    private String getPrefId(String name) {
-        if (prefId == null) {
-            prefId = getAccount().getUuid() + "." + name;
-        }
-
-        return prefId;
-    }
-
-    void deleteSavedSettings() {
-        String id = getPrefId(serverId);
-
-        StorageEditor editor = localStore.getPreferences().createStorageEditor();
-
-        editor.remove(id + ".displayMode");
-        editor.remove(id + ".syncMode");
-        editor.remove(id + ".pushMode");
-        editor.remove(id + ".notifyMode");
-        editor.remove(id + ".inTopGroup");
-        editor.remove(id + ".integrate");
-
-        editor.commit();
-    }
-
     public void fetch(final List<LocalMessage> messages, final FetchProfile fp, final MessageRetrievalListener<LocalMessage> listener)
     throws MessagingException {
         try {
@@ -660,7 +574,7 @@ public class LocalFolder {
     }
 
     private void parseHeaderBytes(Part part, byte[] header) throws MessagingException {
-        MessageHeaderParser.parse(part, new ByteArrayInputStream(header));
+        MessageHeaderParser.parse(new ByteArrayInputStream(header), part::addRawHeader);
     }
 
     public String getMessageUidById(final long id) throws MessagingException {
@@ -862,25 +776,6 @@ public class LocalFolder {
         return messages;
     }
 
-    public Map<String, String> copyMessages(List<LocalMessage> msgs, LocalFolder folder) throws MessagingException {
-        return folder.appendMessages(msgs, true);
-    }
-
-    /**
-     * The method differs slightly from the contract; If an incoming message already has a uid
-     * assigned and it matches the uid of an existing message then this message will replace the
-     * old message. It is implemented as a delete/insert. This functionality is used in saving
-     * of drafts and re-synchronization of updated server messages.
-     *
-     * NOTE that although this method is located in the LocalStore class, it is not guaranteed
-     * that the messages supplied as parameters are actually {@link LocalMessage} instances (in
-     * fact, in most cases, they are not). Therefore, if you want to make local changes only to a
-     * message, retrieve the appropriate local message instance first (if it already exists).
-     */
-    public Map<String, String> appendMessages(List<Message> messages) throws MessagingException {
-        return appendMessages(messages, false);
-    }
-
     public void destroyMessages(final List<LocalMessage> messages) {
         try {
             this.localStore.getDatabase().execute(true, new DbCallback<Void>() {
@@ -899,260 +794,6 @@ public class LocalFolder {
         } catch (MessagingException e) {
             throw new WrappedException(e);
         }
-    }
-
-    private ThreadInfo getThreadInfo(SQLiteDatabase db, String messageId, boolean onlyEmpty) {
-        if (messageId == null) {
-            return null;
-        }
-
-        String sql = "SELECT t.id, t.message_id, t.root, t.parent " +
-                "FROM messages m " +
-                "LEFT JOIN threads t ON (t.message_id = m.id) " +
-                "WHERE m.folder_id = ? AND m.message_id = ? " +
-                ((onlyEmpty) ? "AND m.empty = 1 " : "") +
-                "ORDER BY m.id LIMIT 1";
-        String[] selectionArgs = { Long.toString(databaseId), messageId };
-        Cursor cursor = db.rawQuery(sql, selectionArgs);
-
-        if (cursor != null) {
-            try {
-                if (cursor.getCount() > 0) {
-                    cursor.moveToFirst();
-                    long threadId = cursor.getLong(0);
-                    long msgId = cursor.getLong(1);
-                    long rootId = (cursor.isNull(2)) ? -1 : cursor.getLong(2);
-                    long parentId = (cursor.isNull(3)) ? -1 : cursor.getLong(3);
-
-                    return new ThreadInfo(threadId, msgId, messageId, rootId, parentId);
-                }
-            } finally {
-                cursor.close();
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * The method differs slightly from the contract; If an incoming message already has a uid
-     * assigned and it matches the uid of an existing message then this message will replace
-     * the old message. This functionality is used in saving of drafts and re-synchronization
-     * of updated server messages.
-     *
-     * NOTE that although this method is located in the LocalStore class, it is not guaranteed
-     * that the messages supplied as parameters are actually {@link LocalMessage} instances (in
-     * fact, in most cases, they are not). Therefore, if you want to make local changes only to a
-     * message, retrieve the appropriate local message instance first (if it already exists).
-     * @return uidMap of srcUids -> destUids
-     */
-    private Map<String, String> appendMessages(final List<? extends Message> messages, final boolean copy)
-            throws MessagingException {
-        open();
-        try {
-            final Map<String, String> uidMap = new HashMap<>();
-            this.localStore.getDatabase().execute(true, new DbCallback<Void>() {
-                @Override
-                public Void doDbWork(final SQLiteDatabase db) throws WrappedException, UnavailableStorageException {
-                    try {
-                        for (Message message : messages) {
-                            saveMessage(db, message, copy, uidMap);
-                        }
-                    } catch (MessagingException e) {
-                        throw new WrappedException(e);
-                    }
-                    return null;
-                }
-            });
-
-            this.localStore.notifyChange();
-
-            return uidMap;
-        } catch (WrappedException e) {
-            throw (MessagingException) e.getCause();
-        }
-    }
-
-    private void saveMessage(SQLiteDatabase db, Message message, boolean copy, Map<String, String> uidMap)
-            throws MessagingException {
-        if (!(message instanceof MimeMessage)) {
-            throw new Error("LocalStore can only store Messages that extend MimeMessage");
-        }
-
-        long oldMessageId = -1;
-        String uid = message.getUid();
-        boolean shouldCreateNewMessage = uid == null || copy;
-        if (shouldCreateNewMessage) {
-            String randomLocalUid = K9.LOCAL_UID_PREFIX + UUID.randomUUID().toString();
-
-            if (copy) {
-                // Save mapping: source UID -> target UID
-                uidMap.put(uid, randomLocalUid);
-            } else {
-                // Modify the Message instance to reference the new UID
-                message.setUid(randomLocalUid);
-            }
-
-            // The message will be saved with the newly generated UID
-            uid = randomLocalUid;
-        } else {
-            LocalMessage oldMessage = getMessage(uid);
-
-            if (oldMessage != null) {
-                oldMessageId = oldMessage.getDatabaseId();
-
-                long oldRootMessagePartId = oldMessage.getMessagePartId();
-                deleteMessagePartsAndDataFromDisk(oldRootMessagePartId);
-            }
-        }
-
-        long rootId = -1;
-        long parentId = -1;
-        long msgId;
-
-        if (oldMessageId == -1) {
-            // This is a new message. Do the message threading.
-            ThreadInfo threadInfo = doMessageThreading(db, message);
-            oldMessageId = threadInfo.msgId;
-            rootId = threadInfo.rootId;
-            parentId = threadInfo.parentId;
-        }
-
-        try {
-            String encryptionType;
-            PreviewResult previewResult;
-            int attachmentCount;
-            String fulltext;
-            ContentValues extraContentValues;
-
-            EncryptionResult encryptionResult = encryptionExtractor.extractEncryption(message);
-            if (encryptionResult != null) {
-                encryptionType = encryptionResult.getEncryptionType();
-                previewResult = encryptionResult.getPreviewResult();
-                attachmentCount = encryptionResult.getAttachmentCount();
-                fulltext = encryptionResult.getTextForSearchIndex();
-                extraContentValues = encryptionResult.getExtraContentValues();
-            } else {
-                MessagePreviewCreator previewCreator = localStore.getMessagePreviewCreator();
-                MessageFulltextCreator fulltextCreator = localStore.getMessageFulltextCreator();
-                AttachmentCounter attachmentCounter = localStore.getAttachmentCounter();
-
-                encryptionType = null;
-                previewResult = previewCreator.createPreview(message);
-                attachmentCount = attachmentCounter.getAttachmentCount(message);
-                fulltext = fulltextCreator.createFulltext(message);
-                extraContentValues = null;
-            }
-
-            PreviewType previewType = previewResult.getPreviewType();
-            DatabasePreviewType databasePreviewType = DatabasePreviewType.fromPreviewType(previewType);
-
-            long rootMessagePartId = saveMessageParts(db, message);
-
-            ContentValues cv = new ContentValues();
-            cv.put("message_part_id", rootMessagePartId);
-            cv.put("uid", uid);
-            cv.put("subject", message.getSubject());
-            cv.put("sender_list", Address.pack(message.getFrom()));
-            cv.put("date", message.getSentDate() == null
-                    ? System.currentTimeMillis() : message.getSentDate().getTime());
-            cv.put("flags", LocalStore.serializeFlags(message.getFlags()));
-            cv.put("deleted", message.isSet(Flag.DELETED) ? 1 : 0);
-            cv.put("read", message.isSet(Flag.SEEN) ? 1 : 0);
-            cv.put("flagged", message.isSet(Flag.FLAGGED) ? 1 : 0);
-            cv.put("answered", message.isSet(Flag.ANSWERED) ? 1 : 0);
-            cv.put("forwarded", message.isSet(Flag.FORWARDED) ? 1 : 0);
-            cv.put("folder_id", databaseId);
-            cv.put("to_list", Address.pack(message.getRecipients(RecipientType.TO)));
-            cv.put("cc_list", Address.pack(message.getRecipients(RecipientType.CC)));
-            cv.put("bcc_list", Address.pack(message.getRecipients(RecipientType.BCC)));
-            cv.put("reply_to_list", Address.pack(message.getReplyTo()));
-            cv.put("attachment_count", attachmentCount);
-            cv.put("internal_date", message.getInternalDate() == null
-                    ? System.currentTimeMillis() : message.getInternalDate().getTime());
-            cv.put("mime_type", message.getMimeType());
-            cv.put("empty", 0);
-            cv.put("encryption_type", encryptionType);
-
-            cv.put("preview_type", databasePreviewType.getDatabaseValue());
-            if (previewResult.isPreviewTextAvailable()) {
-                cv.put("preview", previewResult.getPreviewText());
-            } else {
-                cv.putNull("preview");
-            }
-
-            String messageId = message.getMessageId();
-            if (messageId != null) {
-                cv.put("message_id", messageId);
-            }
-
-            if (extraContentValues != null) {
-                cv.putAll(extraContentValues);
-            }
-
-            if (oldMessageId == -1) {
-                msgId = db.insert("messages", "uid", cv);
-
-                // Create entry in 'threads' table
-                cv.clear();
-                cv.put("message_id", msgId);
-
-                if (rootId != -1) {
-                    cv.put("root", rootId);
-                }
-                if (parentId != -1) {
-                    cv.put("parent", parentId);
-                }
-
-                db.insert("threads", null, cv);
-            } else {
-                msgId = oldMessageId;
-                db.update("messages", cv, "id = ?", new String[] { Long.toString(oldMessageId) });
-            }
-
-            if (fulltext != null) {
-                cv.clear();
-                cv.put("docid", msgId);
-                cv.put("fulltext", fulltext);
-                db.replace("messages_fulltext", null, cv);
-            }
-        } catch (Exception e) {
-            throw new MessagingException("Error appending message: " + message.getSubject(), e);
-        }
-    }
-
-    private long saveMessageParts(SQLiteDatabase db, Message message) throws IOException, MessagingException {
-        long rootMessagePartId = saveMessagePart(db, new PartContainer(-1, message), -1, 0);
-
-        Stack<PartContainer> partsToSave = new Stack<>();
-        addChildrenToStack(partsToSave, message, rootMessagePartId);
-
-        int order = 1;
-        while (!partsToSave.isEmpty()) {
-            PartContainer partContainer = partsToSave.pop();
-            long messagePartId = saveMessagePart(db, partContainer, rootMessagePartId, order);
-            order++;
-
-            addChildrenToStack(partsToSave, partContainer.part, messagePartId);
-        }
-
-        return rootMessagePartId;
-    }
-
-    private long saveMessagePart(SQLiteDatabase db, PartContainer partContainer, long rootMessagePartId, int order)
-            throws IOException, MessagingException {
-
-        Part part = partContainer.part;
-
-        ContentValues cv = new ContentValues();
-        if (rootMessagePartId != -1) {
-            cv.put("root", rootMessagePartId);
-        }
-        cv.put("parent", partContainer.parent);
-        cv.put("seq", order);
-        cv.put("server_extra", part.getServerExtra());
-
-        return updateOrInsertMessagePart(db, cv, part, INVALID_MESSAGE_PART_ID);
     }
 
     private void moveTemporaryFile(File tempFile, String messagePartId) throws IOException {
@@ -1331,30 +972,6 @@ public class LocalFolder {
         return MimeUtil.ENC_7BIT;
     }
 
-    private void addChildrenToStack(Stack<PartContainer> stack, Part part, long parentMessageId) {
-        Body body = part.getBody();
-        if (body instanceof Multipart) {
-            Multipart multipart = (Multipart) body;
-            for (int i = multipart.getCount() - 1; i >= 0; i--) {
-                BodyPart childPart = multipart.getBodyPart(i);
-                stack.push(new PartContainer(parentMessageId, childPart));
-            }
-        } else if (body instanceof Message) {
-            Message innerMessage = (Message) body;
-            stack.push(new PartContainer(parentMessageId, innerMessage));
-        }
-    }
-
-    private static class PartContainer {
-        public final long parent;
-        public final Part part;
-
-        PartContainer(long parent, Part part) {
-            this.parent = parent;
-            this.part = part;
-        }
-    }
-
     public void addPartToMessage(final LocalMessage message, final Part part) throws MessagingException {
         open();
 
@@ -1522,31 +1139,6 @@ public class LocalFolder {
         });
     }
 
-    public void delete() throws MessagingException {
-        try {
-            this.localStore.getDatabase().execute(false, new DbCallback<Void>() {
-                @Override
-                public Void doDbWork(final SQLiteDatabase db) throws WrappedException, UnavailableStorageException {
-                    try {
-                        // We need to open the folder first to make sure we've got its id
-                        open();
-                        List<LocalMessage> messages = getMessages(null);
-                        for (LocalMessage message : messages) {
-                            deleteMessageDataFromDisk(message.getMessagePartId());
-                        }
-                    } catch (MessagingException e) {
-                        throw new WrappedException(e);
-                    }
-                    db.execSQL("DELETE FROM folders WHERE id = ?", new Object[]
-                               { Long.toString(databaseId), });
-                    return null;
-                }
-            });
-        } catch (WrappedException e) {
-            throw(MessagingException) e.getCause();
-        }
-    }
-
     @Override
     public boolean equals(Object o) {
         if (o instanceof LocalFolder) {
@@ -1683,23 +1275,8 @@ public class LocalFolder {
         }
     }
 
-    /**
-     * Delete a message from the 'messages' and 'threads' tables.
-     *
-     * @param db
-     *         {@link SQLiteDatabase} instance to access the database.
-     * @param messageId
-     *         The database ID of the message to delete.
-     */
     private void deleteMessageRow(SQLiteDatabase db, long messageId) {
-        String[] idArg = { Long.toString(messageId) };
-
-        // Delete the message
-        db.delete("messages", "id = ?", idArg);
-
-        // Delete row in 'threads' table
-        // TODO: create trigger for 'messages' table to get rid of the row in 'threads' table
-        db.delete("threads", "message_id = ?", idArg);
+        db.delete("messages", "id = ?", new String[] { Long.toString(messageId) });
     }
 
     void deleteFulltextIndexEntry(SQLiteDatabase db, long messageId) {
@@ -1762,108 +1339,6 @@ public class LocalFolder {
     public void setInTopGroup(boolean inTopGroup) throws MessagingException {
         isInTopGroup = inTopGroup;
         updateFolderColumn("top_group", isInTopGroup ? 1 : 0);
-    }
-
-    public ThreadInfo doMessageThreading(SQLiteDatabase db, Message message) {
-        long rootId = -1;
-        long parentId = -1;
-
-        String messageId = message.getMessageId();
-
-        // If there's already an empty message in the database, update that
-        ThreadInfo msgThreadInfo = getThreadInfo(db, messageId, true);
-
-        // Get the message IDs from the "References" header line
-        String[] referencesArray = message.getHeader("References");
-        List<String> messageIds = null;
-        if (referencesArray.length > 0) {
-            messageIds = Utility.extractMessageIds(referencesArray[0]);
-        }
-
-        // Append the first message ID from the "In-Reply-To" header line
-        String[] inReplyToArray = message.getHeader("In-Reply-To");
-        String inReplyTo;
-        if (inReplyToArray.length > 0) {
-            inReplyTo = Utility.extractMessageId(inReplyToArray[0]);
-            if (inReplyTo != null) {
-                if (messageIds == null) {
-                    messageIds = new ArrayList<>(1);
-                    messageIds.add(inReplyTo);
-                } else if (!messageIds.contains(inReplyTo)) {
-                    messageIds.add(inReplyTo);
-                }
-            }
-        }
-
-        if (messageIds == null) {
-            // This is not a reply, nothing to do for us.
-            return (msgThreadInfo != null) ?
-                    msgThreadInfo : new ThreadInfo(-1, -1, messageId, -1, -1);
-        }
-
-        for (String reference : messageIds) {
-            ThreadInfo threadInfo = getThreadInfo(db, reference, false);
-
-            if (threadInfo == null) {
-                // Create placeholder message in 'messages' table
-                ContentValues cv = new ContentValues();
-                cv.put("message_id", reference);
-                cv.put("folder_id", databaseId);
-                cv.put("empty", 1);
-
-                long newMsgId = db.insert("messages", null, cv);
-
-                // Create entry in 'threads' table
-                cv.clear();
-                cv.put("message_id", newMsgId);
-                if (rootId != -1) {
-                    cv.put("root", rootId);
-                }
-                if (parentId != -1) {
-                    cv.put("parent", parentId);
-                }
-
-                parentId = db.insert("threads", null, cv);
-                if (rootId == -1) {
-                    rootId = parentId;
-                }
-            } else {
-                if (rootId != -1 && threadInfo.rootId == -1 && rootId != threadInfo.threadId) {
-                    // We found an existing root container that is not
-                    // the root of our current path (References).
-                    // Connect it to the current parent.
-
-                    // Let all children know who's the new root
-                    ContentValues cv = new ContentValues();
-                    cv.put("root", rootId);
-                    db.update("threads", cv, "root = ?",
-                            new String[] { Long.toString(threadInfo.threadId) });
-
-                    // Connect the message to the current parent
-                    cv.put("parent", parentId);
-                    db.update("threads", cv, "id = ?",
-                            new String[] { Long.toString(threadInfo.threadId) });
-                } else {
-                    rootId = (threadInfo.rootId == -1) ?
-                            threadInfo.threadId : threadInfo.rootId;
-                }
-                parentId = threadInfo.threadId;
-            }
-        }
-
-        //TODO: set in-reply-to "link" even if one already exists
-
-        long threadId;
-        long msgId;
-        if (msgThreadInfo != null) {
-            threadId = msgThreadInfo.threadId;
-            msgId = msgThreadInfo.msgId;
-        } else {
-            threadId = -1;
-            msgId = -1;
-        }
-
-        return new ThreadInfo(threadId, msgId, messageId, rootId, parentId);
     }
 
     public List<String> extractNewMessages(final List<String> messageServerIds)
@@ -1960,32 +1435,6 @@ public class LocalFolder {
         static final int IN_DATABASE = 1;
         static final int ON_DISK = 2;
         static final int CHILD_PART_CONTAINS_DATA = 3;
-    }
-
-    public enum MoreMessages {
-        UNKNOWN("unknown"),
-        FALSE("false"),
-        TRUE("true");
-
-        private final String databaseName;
-
-        MoreMessages(String databaseName) {
-            this.databaseName = databaseName;
-        }
-
-        public static MoreMessages fromDatabaseName(String databaseName) {
-            for (MoreMessages value : MoreMessages.values()) {
-                if (value.databaseName.equals(databaseName)) {
-                    return value;
-                }
-            }
-
-            throw new IllegalArgumentException("Unknown value: " + databaseName);
-        }
-
-        public String getDatabaseName() {
-            return databaseName;
-        }
     }
 
     public static boolean isModeMismatch(Account.FolderMode aMode, FolderClass fMode) {

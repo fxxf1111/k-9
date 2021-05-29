@@ -9,10 +9,18 @@
   <!--Used in the about dialog-->
   <string name="app_authors">Criadores do K-9</string>
   <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Partes do Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
-  <string name="source_code">Fonte</string>
+  <string name="source_code">Código-fonte</string>
   <string name="app_license">Apache License, Versão 2.0</string>
+  <string name="about_project_title">Projeto de código aberto</string>
+  <string name="about_website_title">Website</string>
+  <string name="user_forum_title">Fórum de usuários</string>
+  <string name="about_fediverse_title">Fediverse</string>
+  <string name="about_twitter_title">Twitter</string>
   <string name="about_libraries">Bibliotecas</string>
   <string name="license">Licença</string>
+  <string name="changelog_title">Registro de mudanças</string>
+  <string name="changelog_loading_error">Não foi possível ler o registro de mudanças</string>
+  <string name="changelog_version_title">Versão %s</string>
   <!--Welcome message-->
   <string name="welcome_message_title">Bem-vindo ao K-9 Mail</string>
   <string name="accounts_welcome"><![CDATA[
@@ -117,7 +125,6 @@ Por favor encaminhe relatórios de bugs, contribua com novos recursos e tire dú
   <string name="unflag_action">Remover estrela</string>
   <string name="copy_action">Copiar</string>
   <string name="show_headers_action">Exibir cabeçalhos</string>
-  <string name="hide_headers_action">Ocultar cabeçalhos</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Endereço copiado para área de transferência</item>
     <item quantity="other">Endereços copiados para a área de transferência</item>
@@ -578,6 +585,7 @@ Por favor encaminhe relatórios de bugs, contribua com novos recursos e tire dú
   <string name="manage_identities_title">Gerenciar identidades</string>
   <string name="manage_identities_context_menu_title">Gerenciar identidade</string>
   <string name="edit_identity_title">Editar identidade</string>
+  <string name="edit_identity_save">Salvar</string>
   <string name="new_identity_action">Nova identidade</string>
   <string name="account_settings_always_bcc_label">Encaminhar todas as mensagens via Cco para</string>
   <string name="manage_identities_edit_action">Editar</string>
@@ -678,7 +686,7 @@ Por favor encaminhe relatórios de bugs, contribua com novos recursos e tire dú
   <string name="volume_navigation_title">Navegação com a tecla de volume</string>
   <string name="volume_navigation_message">Nas visualizações das mensagens</string>
   <string name="volume_navigation_list">Nas visualizações das listas</string>
-  <string name="hide_special_accounts_title">Ocultar a caixa de entrada unificada</string>
+  <string name="show_unified_inbox_title">Exibir a caixa de entrada unificada</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier"> - Não lido</string>
   <string name="search_all_messages_title">Todas as mensagens</string>
@@ -731,6 +739,7 @@ Por favor encaminhe relatórios de bugs, contribua com novos recursos e tire dú
   <string name="send_failed_reason">Falha no envio: %s</string>
   <string name="save_or_discard_draft_message_dlg_title">Salvar mensagem de rascunho?</string>
   <string name="save_or_discard_draft_message_instructions_fmt">Salvar ou descartar esta mensagem?</string>
+  <string name="save_or_discard_draft_message_changes">Salvar ou descartar as alterações?</string>
   <string name="confirm_discard_draft_message_title">Descartar a mensagem?</string>
   <string name="confirm_discard_draft_message">Tem certeza que deseja descartar esta mensagem?</string>
   <string name="select_text_now">Selecione o texto a ser copiado.</string>
@@ -1035,4 +1044,5 @@ Você pode manter esta mensagem e usá-la como um backup para a sua chave secret
   <!--permissions-->
   <string name="permission_contacts_rationale_title">Permitir acesso aos contatos</string>
   <string name="permission_contacts_rationale_message">Para fornecer sugestões e exibir nomes e fotos de contatos, o app precisa de ter acesso aos seus contatos.</string>
+  <string name="generic_loading_error">Um erro ocorreu durante o carregamento dos dados</string>
 </resources>

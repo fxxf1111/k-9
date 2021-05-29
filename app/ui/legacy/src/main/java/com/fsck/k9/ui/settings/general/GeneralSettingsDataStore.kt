@@ -1,28 +1,24 @@
 package com.fsck.k9.ui.settings.general
 
-import androidx.fragment.app.FragmentActivity
 import androidx.preference.PreferenceDataStore
 import com.fsck.k9.K9
 import com.fsck.k9.K9.AppTheme
 import com.fsck.k9.K9.SubTheme
-import com.fsck.k9.Preferences
 import com.fsck.k9.job.K9JobManager
+import com.fsck.k9.ui.base.AppLanguageManager
 import com.fsck.k9.ui.base.ThemeManager
-import java.util.concurrent.ExecutorService
 
 class GeneralSettingsDataStore(
-    private val preferences: Preferences,
     private val jobManager: K9JobManager,
-    private val executorService: ExecutorService,
-    private val themeManager: ThemeManager
+    private val themeManager: ThemeManager,
+    private val appLanguageManager: AppLanguageManager
 ) : PreferenceDataStore() {
-    var activity: FragmentActivity? = null
 
     override fun getBoolean(key: String, defValue: Boolean): Boolean {
         return when (key) {
             "fixed_message_view_theme" -> K9.isFixedMessageViewTheme
             "animations" -> K9.isShowAnimations
-            "hide_special_accounts" -> K9.isHideSpecialAccounts
+            "show_unified_inbox" -> K9.isShowUnifiedInbox
             "messagelist_stars" -> K9.isShowMessageListStars
             "messagelist_show_correspondent_names" -> K9.isShowCorrespondentNames
             "messagelist_sender_above_subject" -> K9.isMessageListSenderAboveSubject
@@ -50,7 +46,7 @@ class GeneralSettingsDataStore(
         when (key) {
             "fixed_message_view_theme" -> K9.isFixedMessageViewTheme = value
             "animations" -> K9.isShowAnimations = value
-            "hide_special_accounts" -> K9.isHideSpecialAccounts = value
+            "show_unified_inbox" -> K9.isShowUnifiedInbox = value
             "messagelist_stars" -> K9.isShowMessageListStars = value
             "messagelist_show_correspondent_names" -> K9.isShowCorrespondentNames = value
             "messagelist_sender_above_subject" -> K9.isMessageListSenderAboveSubject = value
@@ -96,7 +92,7 @@ class GeneralSettingsDataStore(
 
     override fun getString(key: String, defValue: String?): String? {
         return when (key) {
-            "language" -> K9.k9Language
+            "language" -> appLanguageManager.getAppLanguage()
             "theme" -> appThemeToString(K9.appTheme)
             "message_compose_theme" -> subThemeToString(K9.messageComposeTheme)
             "messageViewTheme" -> subThemeToString(K9.messageViewTheme)
@@ -132,7 +128,7 @@ class GeneralSettingsDataStore(
         if (value == null) return
 
         when (key) {
-            "language" -> setLanguage(value)
+            "language" -> appLanguageManager.setAppLanguage(value)
             "theme" -> setTheme(value)
             "message_compose_theme" -> K9.messageComposeTheme = stringToSubTheme(value)
             "messageViewTheme" -> K9.messageViewTheme = stringToSubTheme(value)
@@ -230,22 +226,12 @@ class GeneralSettingsDataStore(
     }
 
     private fun saveSettings() {
-        val editor = preferences.createStorageEditor()
-        K9.save(editor)
-
-        executorService.execute {
-            editor.commit()
-        }
+        K9.saveSettingsAsync()
     }
 
     private fun setTheme(value: String?) {
         K9.appTheme = stringToAppTheme(value)
         themeManager.updateAppTheme()
-    }
-
-    private fun setLanguage(language: String) {
-        K9.k9Language = language
-        recreateActivity()
     }
 
     private fun appThemeToString(theme: AppTheme) = when (theme) {
@@ -280,9 +266,5 @@ class GeneralSettingsDataStore(
             K9.backgroundOps = newBackgroundOps
             jobManager.scheduleAllMailJobs()
         }
-    }
-
-    private fun recreateActivity() {
-        activity?.recreate()
     }
 }

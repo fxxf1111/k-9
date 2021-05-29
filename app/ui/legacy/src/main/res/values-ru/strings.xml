@@ -4,15 +4,23 @@
   <!--This should make it easier for forks to change the branding-->
   <!--Used in AndroidManifest.xml-->
   <string name="app_name">Почта K-9</string>
-  <string name="shortcuts_title">Почтовые ящики K-9</string>
+  <string name="shortcuts_title">Аккаунты K-9</string>
   <string name="unread_widget_label">Не прочитано</string>
   <!--Used in the about dialog-->
   <string name="app_authors">The K-9 Dog Walkers</string>
   <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Portions Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project</string>
   <string name="source_code">Исходный код</string>
   <string name="app_license">Лицензия Apache версии 2.0</string>
+  <string name="about_project_title">Проект с открытым исходным кодом</string>
+  <string name="about_website_title">Сайт</string>
+  <string name="user_forum_title">Форум</string>
+  <string name="about_fediverse_title">Федеративная сеть</string>
+  <string name="about_twitter_title">Твиттер</string>
   <string name="about_libraries">Библиотеки</string>
   <string name="license">Лицензия</string>
+  <string name="changelog_title">Список изменений</string>
+  <string name="changelog_loading_error">Не удалось загрузить список изменений.</string>
+  <string name="changelog_version_title">Версия %s</string>
   <!--Welcome message-->
   <string name="welcome_message_title">Добро пожаловать!</string>
   <string name="accounts_welcome"><![CDATA[
@@ -90,6 +98,7 @@ K-9 Mail — почтовый клиент для Android.
   <string name="spam_action">В спам</string>
   <string name="forward_action">Переслать</string>
   <string name="forward_as_attachment_action">Переслать вложением</string>
+  <string name="edit_as_new_message_action">Редактировать как новое сообщение</string>
   <string name="move_action">Переместить</string>
   <string name="move_to_drafts_action">Переместить в черновики</string>
   <string name="single_message_options_action">Отправить...</string>
@@ -116,7 +125,6 @@ K-9 Mail — почтовый клиент для Android.
   <string name="unflag_action">Обычное</string>
   <string name="copy_action">Копировать</string>
   <string name="show_headers_action">Все заголовки</string>
-  <string name="hide_headers_action">Без заголовков</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Адрес скопирован в буфер</item>
     <item quantity="few">Адреса скопированы в буфер</item>
@@ -453,6 +461,7 @@ K-9 Mail — почтовый клиент для Android.
   <string name="account_settings_quote_style_prefix">Префикс (Gmail)</string>
   <string name="account_settings_quote_style_header">Заголовок (Outlook)</string>
   <string name="account_settings_upload_sent_messages_label">Выгрузить отправленные</string>
+  <string name="account_settings_upload_sent_messages_summary">Помещать сообщения в папку \"Отправленные\" после отправки</string>
   <string name="account_settings_general_title">Основные</string>
   <string name="account_settings_reading_mail">Чтение</string>
   <string name="account_settings_sync">Получение</string>
@@ -580,6 +589,7 @@ K-9 Mail — почтовый клиент для Android.
   <string name="manage_identities_title">Управление ролями</string>
   <string name="manage_identities_context_menu_title">Управление</string>
   <string name="edit_identity_title">Правка роли</string>
+  <string name="edit_identity_save">Сохранить</string>
   <string name="new_identity_action">Новая роль</string>
   <string name="account_settings_always_bcc_label">Скрытая копия всех сообщений</string>
   <string name="manage_identities_edit_action">Правка</string>
@@ -680,6 +690,7 @@ K-9 Mail — почтовый клиент для Android.
   <string name="volume_navigation_title">Прокрутка кнопками Vol+/-</string>
   <string name="volume_navigation_message">В сообщении</string>
   <string name="volume_navigation_list">В списке</string>
+  <string name="show_unified_inbox_title">Показывать общий ящик для входящих</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier">– не прочитано</string>
   <string name="search_all_messages_title">Вся почта</string>
@@ -732,9 +743,13 @@ K-9 Mail — почтовый клиент для Android.
   <string name="send_failed_reason">Сбой отправки: %s</string>
   <string name="save_or_discard_draft_message_dlg_title">Выберите действие</string>
   <string name="save_or_discard_draft_message_instructions_fmt">Сохранить черновик или отменить сообщение?</string>
+  <string name="save_or_discard_draft_message_changes">Сохранить или отменить изменения?</string>
   <string name="confirm_discard_draft_message_title">Удаление</string>
   <string name="confirm_discard_draft_message">Отменить сообщение?</string>
   <string name="select_text_now">Выберите текст длительным нажатием</string>
+  <string name="dialog_confirm_clear_local_folder_title">Стереть локальные сообщения?</string>
+  <string name="dialog_confirm_clear_local_folder_message">Это удалит все локальные сообщения из папки.Сообщения не будут удалены с сервера.</string>
+  <string name="dialog_confirm_clear_local_folder_action">Стереть сообщения</string>
   <string name="dialog_confirm_delete_title">Удаление</string>
   <string name="dialog_confirm_delete_message">Удалить сообщение?</string>
   <plurals name="dialog_confirm_delete_messages">
@@ -786,6 +801,15 @@ K-9 Mail — почтовый клиент для Android.
   <string name="settings_import_later_button">Позже</string>
   <string name="settings_import">Импорт</string>
   <string name="settings_importing">Импорт настроек…</string>
+  <plurals name="settings_import_password_prompt">
+    <item quantity="one">Чтобы использовать ящик \"<xliff:g id="account">%s</xliff:g>\" необходимо ввести пароль.</item>
+    <item quantity="few">Чтобы использовать ящик \"<xliff:g id="account">%s</xliff:g>\" необходимо ввести пароли.</item>
+    <item quantity="many">Чтобы использовать ящик \"<xliff:g id="account">%s</xliff:g>\" необходимо ввести пароли.</item>
+    <item quantity="other">Чтобы использовать ящик \"<xliff:g id="account">%s</xliff:g>\" необходимо ввести пароли.</item>
+  </plurals>
+  <string name="settings_import_incoming_server_password_hint">Входящий пароль сервера</string>
+  <string name="settings_import_outgoing_server_password_hint">Исходящий пароль сервера</string>
+  <string name="settings_import_use_same_password_for_outgoing_server">Использовать тот же пароль для исходящего сервера</string>
   <string name="server_name_format">Названия серверов: <xliff:g id="hostname">%s</xliff:g></string>
   <string name="unread_widget_select_account">Счётчик непрочитанных</string>
   <string name="unread_widget_account_title">Ящик</string>
@@ -804,6 +828,8 @@ K-9 Mail — почтовый клиент для Android.
   <string name="webview_contextmenu_link_share_action">Отправить</string>
   <string name="webview_contextmenu_link_copy_action">В буфер</string>
   <string name="webview_contextmenu_link_clipboard_label">Ссылка</string>
+  <string name="webview_contextmenu_link_text_copy_action">Копировать текст ссылки в буфер обмена</string>
+  <string name="webview_contextmenu_link_text_clipboard_label">Текст ссылки</string>
   <string name="webview_contextmenu_image_title">Изображение</string>
   <string name="webview_contextmenu_image_view_action">Открыть</string>
   <string name="webview_contextmenu_image_save_action">Сохранить</string>
@@ -884,6 +910,8 @@ K-9 Mail — почтовый клиент для Android.
   <string name="recipient_bcc">Скрытая</string>
   <string name="recipient_to">Кому</string>
   <string name="recipient_from">От</string>
+  <string name="unknown_recipient">Неизвестный получатель</string>
+  <string name="unknown_sender">Неизвестный отправитель</string>
   <string name="address_type_home">Дом</string>
   <string name="address_type_work">Работа</string>
   <string name="address_type_other">Прочее</string>
@@ -1030,4 +1058,5 @@ K-9 Mail — почтовый клиент для Android.
   <!--permissions-->
   <string name="permission_contacts_rationale_title">Разрешить доступ к контактам</string>
   <string name="permission_contacts_rationale_message">Чтобы подсказывать имена и показывать фото, приложению нужен доступ к контактам</string>
+  <string name="generic_loading_error">При загрузке данных возникла ошибка</string>
 </resources>

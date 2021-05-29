@@ -47,7 +47,6 @@ import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Multipart;
 import com.fsck.k9.mail.Part;
 import com.fsck.k9.mailstore.LocalFolder.DataLocation;
-import com.fsck.k9.mailstore.LocalFolder.MoreMessages;
 import com.fsck.k9.mailstore.LockableDatabase.DbCallback;
 import com.fsck.k9.mailstore.LockableDatabase.SchemaDefinition;
 import com.fsck.k9.mailstore.LockableDatabase.WrappedException;
@@ -226,18 +225,6 @@ public class LocalStore {
     public static int getDbVersion() {
         SchemaDefinitionFactory schemaDefinitionFactory = DI.get(SchemaDefinitionFactory.class);
         return schemaDefinitionFactory.getDatabaseVersion();
-    }
-
-    public static void removeAccount(Account account) {
-        try {
-            removeInstance(account);
-        } catch (Exception e) {
-            Timber.e(e, "Failed to reset local store for account %s", account.getUuid());
-        }
-    }
-
-    private static void removeInstance(Account account) {
-        DI.get(LocalStoreProvider.class).removeInstance(account);
     }
 
     public void switchLocalStorage(final String newStorageProviderId) throws MessagingException {
@@ -906,54 +893,6 @@ public class LocalStore {
         public String name;
         public long size;
         public String type;
-    }
-
-    public void createFolders(final List<LocalFolder> foldersToCreate, final int visibleLimit) throws MessagingException {
-        database.execute(true, new DbCallback<Void>() {
-            @Override
-            public Void doDbWork(final SQLiteDatabase db) throws WrappedException {
-                for (LocalFolder folder : foldersToCreate) {
-                    String serverId = folder.getServerId();
-                    String name = folder.getName();
-                    boolean localOnly = folder.isLocalOnly();
-                    String databaseFolderType = FolderTypeConverter.toDatabaseFolderType(folder.getType());
-
-                    if (K9.DEVELOPER_MODE && localOnly) {
-                        Cursor cursor = db.query("folders", new String[] { "id" },
-                                "name = ? AND local_only = 1", new String[] { name },null, null, null);
-                        try {
-                            if (cursor.moveToNext()) {
-                                long folderId = cursor.getLong(0);
-
-                                throw new AssertionError("Tried to create local folder '" + name + "'" +
-                                        " that already exists in the database with ID " + folderId);
-                            }
-                        } finally {
-                            cursor.close();
-                        }
-                    }
-
-                    final LocalFolder.PreferencesHolder prefHolder = folder.getPreferencesHolder();
-
-                    db.execSQL("INSERT INTO folders (name, visible_limit, top_group, display_class, poll_class, notify_class, push_class, integrate, server_id, local_only, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[] {
-                                   name,
-                                   visibleLimit,
-                                   prefHolder.inTopGroup ? 1 : 0,
-                                   prefHolder.displayClass.name(),
-                                   prefHolder.syncClass.name(),
-                                   prefHolder.notifyClass.name(),
-                                   prefHolder.pushClass.name(),
-                                   prefHolder.integrate ? 1 : 0,
-                                   serverId,
-                                   localOnly ? 1 : 0,
-                                   databaseFolderType
-                               });
-
-                    folder.deleteSavedSettings();
-                }
-                return null;
-            }
-        });
     }
 
     public long createLocalFolder(String folderName, FolderType type) throws MessagingException {

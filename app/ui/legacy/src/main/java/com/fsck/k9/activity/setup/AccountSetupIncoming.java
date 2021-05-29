@@ -11,13 +11,13 @@ import android.text.TextWatcher;
 import android.text.method.DigitsKeyListener;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,9 +28,10 @@ import com.fsck.k9.DI;
 import com.fsck.k9.LocalKeyStoreManager;
 import com.fsck.k9.Preferences;
 import com.fsck.k9.account.AccountCreator;
+import com.fsck.k9.helper.EmailHelper;
+import com.fsck.k9.setup.ServerNameSuggester;
 import com.fsck.k9.ui.base.K9Activity;
 import com.fsck.k9.activity.setup.AccountSetupCheckSettings.CheckDirection;
-import com.fsck.k9.backend.BackendManager;
 import com.fsck.k9.controller.MessagingController;
 import com.fsck.k9.helper.Utility;
 import com.fsck.k9.job.K9JobManager;
@@ -46,12 +47,14 @@ import com.fsck.k9.ui.R;
 import com.fsck.k9.view.ClientCertificateSpinner;
 import com.fsck.k9.view.ClientCertificateSpinner.OnClientCertificateChangedListener;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.HashMap;
 import java.util.Map;
 
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import timber.log.Timber;
+
+import static java.util.Collections.emptyMap;
+
 
 public class AccountSetupIncoming extends K9Activity implements OnClickListener {
     private static final String EXTRA_ACCOUNT = "account";
@@ -60,28 +63,28 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
     private static final String STATE_AUTH_TYPE_POSITION = "authTypePosition";
 
     private final MessagingController messagingController = DI.get(MessagingController.class);
-    private final BackendManager backendManager = DI.get(BackendManager.class);
     private final K9JobManager jobManager = DI.get(K9JobManager.class);
     private final AccountCreator accountCreator = DI.get(AccountCreator.class);
+    private final ServerNameSuggester serverNameSuggester = DI.get(ServerNameSuggester.class);
 
     private String mStoreType;
-    private EditText mUsernameView;
-    private EditText mPasswordView;
+    private TextInputEditText mUsernameView;
+    private TextInputEditText mPasswordView;
     private ClientCertificateSpinner mClientCertificateSpinner;
-    private TextView mClientCertificateLabelView;
-    private TextView mPasswordLabelView;
-    private EditText mServerView;
-    private EditText mPortView;
+    private TextInputLayout mPasswordLayoutView;
+    private TextInputEditText mServerView;
+    private TextInputEditText mPortView;
     private String mCurrentPortViewSetting;
     private Spinner mSecurityTypeView;
     private int mCurrentSecurityTypeViewPosition;
     private Spinner mAuthTypeView;
     private int mCurrentAuthTypeViewPosition;
     private CheckBox mImapAutoDetectNamespaceView;
-    private EditText mImapPathPrefixView;
-    private EditText mWebdavPathPrefixView;
-    private EditText mWebdavAuthPathView;
-    private EditText mWebdavMailboxPathView;
+    private TextInputEditText mImapPathPrefixView;
+    private TextInputEditText mWebdavPathPrefixView;
+    private TextInputEditText mWebdavAuthPathView;
+    private TextInputEditText mWebdavMailboxPathView;
+    private ViewGroup mAllowClientCertificateView;
     private Button mNextButton;
     private Account mAccount;
     private boolean mMakeDefault;
@@ -122,9 +125,7 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
         mUsernameView = findViewById(R.id.account_username);
         mPasswordView = findViewById(R.id.account_password);
         mClientCertificateSpinner = findViewById(R.id.account_client_certificate_spinner);
-        mClientCertificateLabelView = findViewById(R.id.account_client_certificate_label);
-        mPasswordLabelView = findViewById(R.id.account_password_label);
-        TextView serverLabelView = findViewById(R.id.account_server_label);
+        mPasswordLayoutView = findViewById(R.id.account_password_layout);
         mServerView = findViewById(R.id.account_server);
         mPortView = findViewById(R.id.account_port);
         mSecurityTypeView = findViewById(R.id.account_security_type);
@@ -139,6 +140,9 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
         mCompressionWifi = findViewById(R.id.compression_wifi);
         mCompressionOther = findViewById(R.id.compression_other);
         mSubscribedFoldersOnly = findViewById(R.id.subscribed_folders_only);
+        mAllowClientCertificateView = findViewById(R.id.account_allow_client_certificate);
+
+        TextInputLayout serverLayoutView = findViewById(R.id.account_server_layout);
 
         mNextButton.setOnClickListener(this);
 
@@ -178,7 +182,7 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
         boolean editSettings = Intent.ACTION_EDIT.equals(getIntent().getAction());
 
         try {
-            ServerSettings settings = backendManager.decodeStoreUri(mAccount.getStoreUri());
+            ServerSettings settings = mAccount.getIncomingServerSettings();
 
             if (savedInstanceState == null) {
                 // The first item is selected if settings.authenticationType is null or is not in mAuthTypeAdapter
@@ -189,9 +193,7 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
             mAuthTypeView.setSelection(mCurrentAuthTypeViewPosition, false);
             updateViewFromAuthType();
 
-            if (settings.username != null) {
-                mUsernameView.setText(settings.username);
-            }
+            mUsernameView.setText(settings.username);
 
             if (settings.password != null) {
                 mPasswordView.setText(settings.password);
@@ -203,7 +205,7 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
 
             mStoreType = settings.type;
             if (settings.type.equals(Protocols.POP3)) {
-                serverLabelView.setText(R.string.account_setup_incoming_pop_server_label);
+                serverLayoutView.setHint(getString(R.string.account_setup_incoming_pop_server_label));
                 findViewById(R.id.imap_path_prefix_section).setVisibility(View.GONE);
                 findViewById(R.id.webdav_advanced_header).setVisibility(View.GONE);
                 findViewById(R.id.webdav_mailbox_alias_section).setVisibility(View.GONE);
@@ -213,13 +215,14 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
                 findViewById(R.id.compression_label).setVisibility(View.GONE);
                 mSubscribedFoldersOnly.setVisibility(View.GONE);
             } else if (settings.type.equals(Protocols.IMAP)) {
-                serverLabelView.setText(R.string.account_setup_incoming_imap_server_label);
+                serverLayoutView.setHint(getString(R.string.account_setup_incoming_imap_server_label));
 
-                ImapStoreSettings imapSettings = (ImapStoreSettings) settings;
+                boolean autoDetectNamespace = ImapStoreSettings.getAutoDetectNamespace(settings);
+                String pathPrefix = ImapStoreSettings.getPathPrefix(settings);
 
-                mImapAutoDetectNamespaceView.setChecked(imapSettings.autoDetectNamespace);
-                if (imapSettings.pathPrefix != null) {
-                    mImapPathPrefixView.setText(imapSettings.pathPrefix);
+                mImapAutoDetectNamespaceView.setChecked(autoDetectNamespace);
+                if (pathPrefix != null) {
+                    mImapPathPrefixView.setText(pathPrefix);
                 }
 
                 findViewById(R.id.webdav_advanced_header).setVisibility(View.GONE);
@@ -231,7 +234,7 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
                     findViewById(R.id.imap_folder_setup_section).setVisibility(View.GONE);
                 }
             } else if (settings.type.equals(Protocols.WEBDAV)) {
-                serverLabelView.setText(R.string.account_setup_incoming_webdav_server_label);
+                serverLayoutView.setHint(getString(R.string.account_setup_incoming_webdav_server_label));
                 mConnectionSecurityChoices = new ConnectionSecurity[] {
                         ConnectionSecurity.NONE,
                         ConnectionSecurity.SSL_TLS_REQUIRED };
@@ -244,21 +247,22 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
                 findViewById(R.id.compression_label).setVisibility(View.GONE);
                 mSubscribedFoldersOnly.setVisibility(View.GONE);
 
-                WebDavStoreSettings webDavSettings = (WebDavStoreSettings) settings;
-
-                if (webDavSettings.path != null) {
-                    mWebdavPathPrefixView.setText(webDavSettings.path);
+                String path = WebDavStoreSettings.getPath(settings);
+                if (path != null) {
+                    mWebdavPathPrefixView.setText(path);
                 }
 
-                if (webDavSettings.authPath != null) {
-                    mWebdavAuthPathView.setText(webDavSettings.authPath);
+                String authPath = WebDavStoreSettings.getAuthPath(settings);
+                if (authPath != null) {
+                    mWebdavAuthPathView.setText(authPath);
                 }
 
-                if (webDavSettings.mailboxPath != null) {
-                    mWebdavMailboxPathView.setText(webDavSettings.mailboxPath);
+                String mailboxPath = WebDavStoreSettings.getMailboxPath(settings);
+                if (mailboxPath != null) {
+                    mWebdavMailboxPathView.setText(mailboxPath);
                 }
             } else {
-                throw new Exception("Unknown account type: " + mAccount.getStoreUri());
+                throw new Exception("Unknown account type: " + settings.type);
             }
 
             if (!editSettings) {
@@ -288,6 +292,7 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
             mSecurityTypeView.setSelection(mCurrentSecurityTypeViewPosition, false);
 
             updateAuthPlainTextFromSecurityType(settings.connectionSecurity);
+            updateViewFromSecurity();
 
             mCompressionMobile.setChecked(mAccount.useCompression(NetworkType.MOBILE));
             mCompressionWifi.setChecked(mAccount.useCompression(NetworkType.WIFI));
@@ -355,12 +360,12 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
                 }
 
                 updateViewFromAuthType();
+                updateViewFromSecurity();
                 validateFields();
                 AuthType selection = getSelectedAuthType();
 
-                // Have the user select (or confirm) the client certificate
-                if (AuthType.EXTERNAL == selection) {
-
+               // Have the user select the client certificate if not already selected
+               if ((AuthType.EXTERNAL == selection) && (mClientCertificateSpinner.getAlias() == null)) {
                     // This may again invoke validateFields()
                     mClientCertificateSpinner.chooseCertificate();
                 } else {
@@ -410,17 +415,26 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
         if (isAuthTypeExternal) {
 
             // hide password fields, show client certificate fields
-            mPasswordView.setVisibility(View.GONE);
-            mPasswordLabelView.setVisibility(View.GONE);
-            mClientCertificateLabelView.setVisibility(View.VISIBLE);
-            mClientCertificateSpinner.setVisibility(View.VISIBLE);
+            mPasswordLayoutView.setVisibility(View.GONE);
         } else {
 
             // show password fields, hide client certificate fields
-            mPasswordView.setVisibility(View.VISIBLE);
-            mPasswordLabelView.setVisibility(View.VISIBLE);
-            mClientCertificateLabelView.setVisibility(View.GONE);
-            mClientCertificateSpinner.setVisibility(View.GONE);
+            mPasswordLayoutView.setVisibility(View.VISIBLE);
+        }
+    }
+
+
+    /**
+     * Shows/hides client certificate spinner
+     */
+    private void updateViewFromSecurity() {
+        ConnectionSecurity security = getSelectedSecurity();
+        boolean isUsingTLS = ((ConnectionSecurity.SSL_TLS_REQUIRED  == security) || (ConnectionSecurity.STARTTLS_REQUIRED == security));
+
+        if (isUsingTLS) {
+            mAllowClientCertificateView.setVisibility(View.VISIBLE);
+        } else {
+            mAllowClientCertificateView.setVisibility(View.GONE);
         }
     }
 
@@ -452,12 +466,14 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
             mAuthTypeView.setSelection(mCurrentAuthTypeViewPosition, false);
             mAuthTypeView.setOnItemSelectedListener(onItemSelectedListener);
             updateViewFromAuthType();
+            updateViewFromSecurity();
 
             onItemSelectedListener = mSecurityTypeView.getOnItemSelectedListener();
             mSecurityTypeView.setOnItemSelectedListener(null);
             mSecurityTypeView.setSelection(mCurrentSecurityTypeViewPosition, false);
             mSecurityTypeView.setOnItemSelectedListener(onItemSelectedListener);
             updateAuthPlainTextFromSecurityType(getSelectedSecurity());
+            updateViewFromSecurity();
 
             mPortView.removeTextChangedListener(validationTextWatcher);
             mPortView.setText(mCurrentPortViewSetting);
@@ -495,6 +511,7 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
     private void updatePortFromSecurityType() {
         ConnectionSecurity securityType = getSelectedSecurity();
         updateAuthPlainTextFromSecurityType(securityType);
+        updateViewFromSecurity();
 
         // Remove listener so as not to trigger validateFields() which is called
         // elsewhere as a result of user interaction.
@@ -527,34 +544,27 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
                  * Set the username and password for the outgoing settings to the username and
                  * password the user just set for incoming.
                  */
-                try {
-                    String username = mUsernameView.getText().toString();
+                String username = mUsernameView.getText().toString();
 
-                    String password = null;
-                    String clientCertificateAlias = null;
-                    AuthType authType = getSelectedAuthType();
-                    if (AuthType.EXTERNAL == authType) {
-                        clientCertificateAlias = mClientCertificateSpinner.getAlias();
-                    } else {
-                        password = mPasswordView.getText().toString();
-                    }
-
-                    URI oldUri = new URI(mAccount.getTransportUri());
-                    ServerSettings transportServer = new ServerSettings(Protocols.SMTP, oldUri.getHost(),
-                            oldUri.getPort(), ConnectionSecurity.SSL_TLS_REQUIRED, authType, username, password,
-                            clientCertificateAlias);
-                    String transportUri = backendManager.createTransportUri(transportServer);
-                    mAccount.setTransportUri(transportUri);
-                } catch (URISyntaxException use) {
-                    /*
-                     * If we can't set up the URL we just continue. It's only for
-                     * convenience.
-                     */
+                String password = null;
+                String clientCertificateAlias = null;
+                AuthType authType = getSelectedAuthType();
+                if ((ConnectionSecurity.SSL_TLS_REQUIRED == getSelectedSecurity()) ||
+                        (ConnectionSecurity.STARTTLS_REQUIRED == getSelectedSecurity()) ) {
+                    clientCertificateAlias = mClientCertificateSpinner.getAlias();
+                }
+                if (AuthType.EXTERNAL != authType) {
+                    password = mPasswordView.getText().toString();
                 }
 
+                String domain = EmailHelper.getDomainFromEmailAddress(mAccount.getEmail());
+                String host = serverNameSuggester.suggestServerName(Protocols.SMTP, domain);
+                ServerSettings transportServer = new ServerSettings(Protocols.SMTP, host,
+                        -1, ConnectionSecurity.SSL_TLS_REQUIRED, authType, username, password,
+                        clientCertificateAlias);
+                mAccount.setOutgoingServerSettings(transportServer);
 
                 AccountSetupOutgoing.actionOutgoingSettings(this, mAccount, mMakeDefault);
-                finish();
             }
         }
     }
@@ -568,36 +578,34 @@ public class AccountSetupIncoming extends K9Activity implements OnClickListener 
             String clientCertificateAlias = null;
 
             AuthType authType = getSelectedAuthType();
-            if (authType == AuthType.EXTERNAL) {
+
+            if ((ConnectionSecurity.SSL_TLS_REQUIRED == connectionSecurity) ||
+                    (ConnectionSecurity.STARTTLS_REQUIRED == connectionSecurity) ) {
                 clientCertificateAlias = mClientCertificateSpinner.getAlias();
-            } else {
+            }
+            if (authType != AuthType.EXTERNAL) {
                 password = mPasswordView.getText().toString();
             }
             String host = mServerView.getText().toString();
             int port = Integer.parseInt(mPortView.getText().toString());
 
-            Map<String, String> extra = null;
+            Map<String, String> extra = emptyMap();
             if (mStoreType.equals(Protocols.IMAP)) {
-                extra = new HashMap<>();
-                extra.put(ImapStoreSettings.AUTODETECT_NAMESPACE_KEY,
-                        Boolean.toString(mImapAutoDetectNamespaceView.isChecked()));
-                extra.put(ImapStoreSettings.PATH_PREFIX_KEY,
-                        mImapPathPrefixView.getText().toString());
+                boolean autoDetectNamespace = mImapAutoDetectNamespaceView.isChecked();
+                String pathPrefix = mImapPathPrefixView.getText().toString();
+                extra = ImapStoreSettings.createExtra(autoDetectNamespace, pathPrefix);
             } else if (mStoreType.equals(Protocols.WEBDAV)) {
-                extra = new HashMap<>();
-                extra.put(WebDavStoreSettings.PATH_KEY,
-                        mWebdavPathPrefixView.getText().toString());
-                extra.put(WebDavStoreSettings.AUTH_PATH_KEY,
-                        mWebdavAuthPathView.getText().toString());
-                extra.put(WebDavStoreSettings.MAILBOX_PATH_KEY,
-                        mWebdavMailboxPathView.getText().toString());
+                String path = mWebdavPathPrefixView.getText().toString();
+                String authPath = mWebdavAuthPathView.getText().toString();
+                String mailboxPath = mWebdavMailboxPathView.getText().toString();
+                extra = WebDavStoreSettings.createExtra(null, path, authPath, mailboxPath);
             }
 
             DI.get(LocalKeyStoreManager.class).deleteCertificate(mAccount, host, port, MailServerDirection.INCOMING);
             ServerSettings settings = new ServerSettings(mStoreType, host, port,
                     connectionSecurity, authType, username, password, clientCertificateAlias, extra);
 
-            mAccount.setStoreUri(backendManager.createStoreUri(settings));
+            mAccount.setIncomingServerSettings(settings);
 
             mAccount.setCompression(NetworkType.MOBILE, mCompressionMobile.isChecked());
             mAccount.setCompression(NetworkType.WIFI, mCompressionWifi.isChecked());

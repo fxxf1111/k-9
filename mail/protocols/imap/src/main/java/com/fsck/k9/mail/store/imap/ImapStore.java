@@ -22,6 +22,7 @@ import com.fsck.k9.mail.Flag;
 import com.fsck.k9.mail.FolderType;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.NetworkType;
+import com.fsck.k9.mail.ServerSettings;
 import com.fsck.k9.mail.oauth.OAuth2TokenProvider;
 import com.fsck.k9.mail.ssl.TrustedSocketFactory;
 import timber.log.Timber;
@@ -52,16 +53,8 @@ public class ImapStore {
     private final Deque<ImapConnection> connections = new LinkedList<>();
     private FolderNameCodec folderNameCodec;
 
-    /**
-     * Cache of ImapFolder objects. ImapFolders are attached to a given folder on the server
-     * and as long as their associated connection remains open they are reusable between
-     * requests. This cache lets us make sure we always reuse, if possible, for a given
-     * folder name.
-     */
-    private final Map<String, ImapFolder> folderCache = new HashMap<>();
 
-
-    public ImapStore(ImapStoreSettings serverSettings, ImapStoreConfig config,
+    public ImapStore(ServerSettings serverSettings, ImapStoreConfig config,
             TrustedSocketFactory trustedSocketFactory, ConnectivityManager connectivityManager,
             OAuth2TokenProvider oauthTokenProvider) {
         this.config = config;
@@ -79,23 +72,17 @@ public class ImapStore {
         password = serverSettings.password;
         clientCertificateAlias = serverSettings.clientCertificateAlias;
 
+        boolean autoDetectNamespace = ImapStoreSettings.getAutoDetectNamespace(serverSettings);
+        String pathPrefixSetting = ImapStoreSettings.getPathPrefix(serverSettings);
+
         // Make extra sure pathPrefix is null if "auto-detect namespace" is configured
-        pathPrefix = (serverSettings.autoDetectNamespace) ? null : serverSettings.pathPrefix;
+        pathPrefix = autoDetectNamespace ? null : pathPrefixSetting;
 
         folderNameCodec = FolderNameCodec.newInstance();
     }
 
     public ImapFolder getFolder(String name) {
-        ImapFolder folder;
-        synchronized (folderCache) {
-            folder = folderCache.get(name);
-            if (folder == null) {
-                folder = new ImapFolder(this, name);
-                folderCache.put(name, folder);
-            }
-        }
-
-        return folder;
+        return new ImapFolder(this, name);
     }
 
     String getCombinedPrefix() {

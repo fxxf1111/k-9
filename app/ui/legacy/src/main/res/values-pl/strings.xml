@@ -9,8 +9,10 @@
   <!--Used in the about dialog-->
   <string name="app_authors">Autorzy K-9 Mail</string>
   <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Portions Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
-  <string name="source_code">Źródło</string>
+  <string name="source_code">Kod źródłowy</string>
   <string name="app_license">Licencja Apache, Wersja 2.0</string>
+  <string name="about_project_title">Projekt otwartoźródłowy</string>
+  <string name="about_website_title">Strona internetowa</string>
   <string name="about_libraries">Biblioteki</string>
   <string name="license">Licencja</string>
   <!--Welcome message-->
@@ -117,7 +119,6 @@ Wysłane z urządzenia Android za pomocą K-9 Mail. Proszę wybaczyć moją zwi�
   <string name="unflag_action">Usuń gwiazdkę</string>
   <string name="copy_action">Skopiuj</string>
   <string name="show_headers_action">Pokaż nagłówki</string>
-  <string name="hide_headers_action">Ukryj nagłówki</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Adres skopiowany do schowka</item>
     <item quantity="few">Adresy skopiowane do schowka</item>
@@ -582,6 +583,7 @@ Wysłane z urządzenia Android za pomocą K-9 Mail. Proszę wybaczyć moją zwi�
   <string name="manage_identities_title">Zarządzaj tożsamościami</string>
   <string name="manage_identities_context_menu_title">Zarządzaj tożsamością</string>
   <string name="edit_identity_title">Edytcja tożsamość</string>
+  <string name="edit_identity_save">Zapisz</string>
   <string name="new_identity_action">Nowa tożsamość</string>
   <string name="account_settings_always_bcc_label">Adres UDW dla wysyłanych wiadomości (opcja)</string>
   <string name="manage_identities_edit_action">Edytuj</string>
@@ -682,7 +684,6 @@ Wysłane z urządzenia Android za pomocą K-9 Mail. Proszę wybaczyć moją zwi�
   <string name="volume_navigation_title">Nawigacja przyciskiem głośności</string>
   <string name="volume_navigation_message">Wygląd wiadomości</string>
   <string name="volume_navigation_list">Różne widoki list</string>
-  <string name="hide_special_accounts_title">Ukryj zunifikowaną skrzynkę odbiorczą</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier"> - Nieprzeczytane</string>
   <string name="search_all_messages_title">Wszystkie wiadomości</string>

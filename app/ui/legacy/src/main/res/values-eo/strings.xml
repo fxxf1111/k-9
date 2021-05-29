@@ -11,8 +11,16 @@
   <string name="app_copyright_fmt">Kopirajto 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Parta kopirajto 2006-<xliff:g>%s</xliff:g> la Malfermkoda Projekto Android (AOSP).</string>
   <string name="source_code">Fontkodo</string>
   <string name="app_license">Apache License, versio 2.0</string>
+  <string name="about_project_title">Malfermkoda projekto</string>
+  <string name="about_website_title">Retejo</string>
+  <string name="user_forum_title">Forumo</string>
+  <string name="about_fediverse_title">Fediverso</string>
+  <string name="about_twitter_title">Twitter</string>
   <string name="about_libraries">Bibliotekoj</string>
   <string name="license">Permesilo</string>
+  <string name="changelog_title">Ŝanĝoprotokolo</string>
+  <string name="changelog_loading_error">Ne povas enlegi la ŝanĝoprotokolon.</string>
+  <string name="changelog_version_title">Versio %s</string>
   <!--Welcome message-->
   <string name="welcome_message_title">Bonvenon al K-9 Retpoŝtilo</string>
   <string name="accounts_welcome"><![CDATA[
@@ -116,7 +124,6 @@ Bonvolu raporti erarojn, kontribui novajn eblojn kaj peti pri novaj funkcioj per
   <string name="unflag_action">Malsteletigi</string>
   <string name="copy_action">Kopii</string>
   <string name="show_headers_action">Montri mesaĝokapojn</string>
-  <string name="hide_headers_action">Kaŝi mesaĝokapojn</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Adreso kopiita al tondujo</item>
     <item quantity="other">Adresoj kopiitaj al tondujo</item>
@@ -577,6 +584,7 @@ Bonvolu raporti erarojn, kontribui novajn eblojn kaj peti pri novaj funkcioj per
   <string name="manage_identities_title">Administri identigilojn</string>
   <string name="manage_identities_context_menu_title">Administri identigilon</string>
   <string name="edit_identity_title">Redakti identigilon</string>
+  <string name="edit_identity_save">Konservi</string>
   <string name="new_identity_action">Nova identigilo</string>
   <string name="account_settings_always_bcc_label">Kaŝkopii ĉiujn mesaĝojn al</string>
   <string name="manage_identities_edit_action">Redakti</string>
@@ -677,7 +685,7 @@ Bonvolu raporti erarojn, kontribui novajn eblojn kaj peti pri novaj funkcioj per
   <string name="volume_navigation_title">Navigado per sonfortecaj butonoj</string>
   <string name="volume_navigation_message">En vido de mesaĝoj</string>
   <string name="volume_navigation_list">En vidoj de listoj</string>
-  <string name="hide_special_accounts_title">Kaŝi unuigitan ricevujon</string>
+  <string name="show_unified_inbox_title">Montri unuigitan ricevujon</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier">- nelegita</string>
   <string name="search_all_messages_title">Ĉiuj mesaĝoj</string>
@@ -1034,4 +1042,5 @@ Vi povas konservi tiun ĉi mesaĝon kaj uzi ĝin kiel sekurkopion de via privata
   <!--permissions-->
   <string name="permission_contacts_rationale_title">Permesu aliron al kontaktoj</string>
   <string name="permission_contacts_rationale_message">Por ebligi al K-9 sugesti kontaktojn kaj vidigi iliajn nomojn kaj fotojn, la aplikaĵo postulas aliron al viaj kontaktoj.</string>
+  <string name="generic_loading_error">Eraro okazis dum enlegi datumojn</string>
 </resources>

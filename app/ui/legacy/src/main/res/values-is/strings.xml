@@ -9,7 +9,6 @@
   <!--Used in the about dialog-->
   <string name="app_authors">K-9 hundatemjararnir</string>
   <string name="app_copyright_fmt">Höfundarréttur 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Höfundarréttur að hluta 2006-<xliff:g>%s</xliff:g> til Android Open Source verkefnisins.</string>
-  <string name="source_code">Uppruni</string>
   <string name="app_license">Apache notkunarleyfi, útgáfa 2.0</string>
   <string name="about_libraries">Aðgerðasöfn</string>
   <string name="license">Notkunarleyfi</string>
@@ -117,7 +116,6 @@ Sendu inn villuskýrslur, leggðu fram nýja eiginleika og spurðu spurninga á
   <string name="unflag_action">Fjarlægja stjörnu</string>
   <string name="copy_action">Afrita</string>
   <string name="show_headers_action">Birta hausa</string>
-  <string name="hide_headers_action">Fela hausa</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Netfang afritað á klippispjald</item>
     <item quantity="other">Netföng afrituð á klippispjald</item>
@@ -579,6 +577,7 @@ Sendu inn villuskýrslur, leggðu fram nýja eiginleika og spurðu spurninga á
   <string name="manage_identities_title">Sýsla með persónuauðkenni</string>
   <string name="manage_identities_context_menu_title">Sýsla með persónuauðkennið</string>
   <string name="edit_identity_title">Breyta persónuauðkenni</string>
+  <string name="edit_identity_save">Vista</string>
   <string name="new_identity_action">Nýtt persónuauðkenni</string>
   <string name="account_settings_always_bcc_label">Falið afrit (BCC) á öll skilaboð til</string>
   <string name="manage_identities_edit_action">Breyta</string>
@@ -679,7 +678,6 @@ Sendu inn villuskýrslur, leggðu fram nýja eiginleika og spurðu spurninga á
   <string name="volume_navigation_title">Flakk með hljóðstyrkshnöppum</string>
   <string name="volume_navigation_message">Í skilaboðasýnum</string>
   <string name="volume_navigation_list">Í listasýnum</string>
-  <string name="hide_special_accounts_title">Fela sameinað innhólf</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier">- Ólesið</string>
   <string name="search_all_messages_title">Öll skilaboð</string>

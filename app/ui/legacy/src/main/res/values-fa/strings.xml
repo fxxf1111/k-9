@@ -9,7 +9,6 @@
   <!--Used in the about dialog-->
   <string name="app_authors">The K-9 Dog Walkers</string>
   <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Portions Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
-  <string name="source_code">کد منبع</string>
   <string name="app_license">مجوز آپاچی، نسخهٔ ۲٫۰</string>
   <string name="about_libraries">کتابخانه‌ها</string>
   <string name="license">مجوز</string>
@@ -116,7 +115,6 @@
   <string name="unflag_action">حذف ستاره</string>
   <string name="copy_action">کپی به</string>
   <string name="show_headers_action">نمایش سرایندها</string>
-  <string name="hide_headers_action">پنهان‌کردن سرایندها</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">نشانی‌ها در بریده‌دان کپی شد</item>
     <item quantity="other">نشانی‌ها در بریده‌دان کپی شد</item>
@@ -578,6 +576,7 @@
   <string name="manage_identities_title">مدیریت هویت‌ها</string>
   <string name="manage_identities_context_menu_title">مدیریت هویت</string>
   <string name="edit_identity_title">ویرایش هویت</string>
+  <string name="edit_identity_save">ذخیره</string>
   <string name="new_identity_action">هویت جدید</string>
   <string name="account_settings_always_bcc_label">همهٔ پیام‌ها «مخفیانه به» کجا ارسال شوند؟</string>
   <string name="manage_identities_edit_action">ویرایش</string>
@@ -678,7 +677,6 @@
   <string name="volume_navigation_title">جابه‌جایی با کلیدهای تنظیم صدا</string>
   <string name="volume_navigation_message">در نماهای پیام</string>
   <string name="volume_navigation_list">در نماهای لیستی</string>
-  <string name="hide_special_accounts_title">پنهان‌کردن صندوق ورودی یکپارچه</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier">- نخوانده</string>
   <string name="search_all_messages_title">همهٔ پیام‌ها</string>

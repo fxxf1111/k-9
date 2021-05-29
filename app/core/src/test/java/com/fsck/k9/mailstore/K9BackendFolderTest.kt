@@ -13,6 +13,7 @@ import com.fsck.k9.mail.Address
 import com.fsck.k9.mail.Flag
 import com.fsck.k9.mail.FolderType
 import com.fsck.k9.mail.Message
+import com.fsck.k9.mail.MessageDownloadState
 import com.fsck.k9.mail.internet.MimeMessage
 import com.fsck.k9.mail.internet.MimeMessageHelper
 import com.fsck.k9.mail.internet.TextBody
@@ -23,11 +24,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
-import org.koin.core.inject
+import org.koin.core.component.inject
 
 class K9BackendFolderTest : K9RobolectricTest() {
     val preferences: Preferences by inject()
     val localStoreProvider: LocalStoreProvider by inject()
+    val messageStoreManager: MessageStoreManager by inject()
+    val saveMessageDataCreator: SaveMessageDataCreator by inject()
 
     val account: Account = createAccount()
     val backendFolder = createBackendFolder()
@@ -90,7 +93,7 @@ class K9BackendFolderTest : K9RobolectricTest() {
         val message = createMessage(messageServerId = null)
 
         try {
-            backendFolder.saveCompleteMessage(message)
+            backendFolder.saveMessage(message, MessageDownloadState.FULL)
             fail("Expected exception")
         } catch (e: IllegalStateException) {
         }
@@ -101,7 +104,7 @@ class K9BackendFolderTest : K9RobolectricTest() {
         val message = createMessage(messageServerId = null)
 
         try {
-            backendFolder.savePartialMessage(message)
+            backendFolder.saveMessage(message, MessageDownloadState.PARTIAL)
             fail("Expected exception")
         } catch (e: IllegalStateException) {
         }
@@ -115,8 +118,13 @@ class K9BackendFolderTest : K9RobolectricTest() {
     }
 
     fun createBackendFolder(): BackendFolder {
-        val localStore: LocalStore = localStoreProvider.getInstance(account)
-        val backendStorage = K9BackendStorage(preferences, account, localStore, emptyList())
+        val messageStore = messageStoreManager.getMessageStore(account)
+        val backendStorage = K9BackendStorage(
+            messageStore,
+            createFolderSettingsProvider(),
+            saveMessageDataCreator,
+            emptyList()
+        )
         backendStorage.updateFolders {
             createFolders(listOf(FolderInfo(FOLDER_SERVER_ID, FOLDER_NAME, FOLDER_TYPE)))
         }
@@ -124,12 +132,12 @@ class K9BackendFolderTest : K9RobolectricTest() {
         val folderServerIds = backendStorage.getFolderServerIds()
         assertTrue(FOLDER_SERVER_ID in folderServerIds)
 
-        return K9BackendFolder(preferences, account, localStore, FOLDER_SERVER_ID)
+        return K9BackendFolder(messageStore, saveMessageDataCreator, FOLDER_SERVER_ID)
     }
 
     fun createMessageInBackendFolder(messageServerId: String, flags: Set<Flag> = emptySet()) {
         val message = createMessage(messageServerId, flags)
-        backendFolder.saveCompleteMessage(message)
+        backendFolder.saveMessage(message, MessageDownloadState.FULL)
 
         val messageServerIds = backendFolder.getMessageServerIds()
         assertTrue(messageServerId in messageServerIds)

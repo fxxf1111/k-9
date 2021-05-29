@@ -9,8 +9,11 @@
   <!--Used in the about dialog-->
   <string name="app_authors">The K-9 Dog Walkers</string>
   <string name="app_copyright_fmt">Hawlfraint 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Hawlfraint Cyfrannau 2006-<xliff:g>%s</xliff:g> Android Open Source Project.</string>
-  <string name="source_code">Ffynhonnell</string>
+  <string name="source_code">Cod ffynhonnell</string>
   <string name="app_license">Trwydded Apache, Fersiwn 2.0</string>
+  <string name="about_project_title">Prosiect Cod Agored</string>
+  <string name="about_website_title">Gwefan</string>
+  <string name="user_forum_title">Fforwm defnyddiwyr</string>
   <string name="about_libraries">Llyfrgelloedd</string>
   <string name="license">Trwydded</string>
   <!--Welcome message-->
@@ -118,7 +121,6 @@ Plîs rho wybod am unrhyw wallau, syniadau am nodweddion newydd, neu ofyn cwesti
   <string name="unflag_action">Tynnu seren</string>
   <string name="copy_action">Copïo</string>
   <string name="show_headers_action">Dangos penynnau</string>
-  <string name="hide_headers_action">Cuddio penynnau</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Copïwyd y cyfeiriad i\'r clipfwrdd</item>
     <item quantity="two">Copïwyd y cyfeiriadau i\'r clipfwrdd</item>
@@ -584,6 +586,7 @@ Plîs rho wybod am unrhyw wallau, syniadau am nodweddion newydd, neu ofyn cwesti
   <string name="manage_identities_title">Rheoli hunaniaethau</string>
   <string name="manage_identities_context_menu_title">Rheoli hunaniaeth</string>
   <string name="edit_identity_title">Golygu hunaniaeth</string>
+  <string name="edit_identity_save">Cadw</string>
   <string name="new_identity_action">Hunaniaeth newydd</string>
   <string name="account_settings_always_bcc_label">Bcc pob neges at</string>
   <string name="manage_identities_edit_action">Golygu</string>
@@ -684,7 +687,6 @@ Plîs rho wybod am unrhyw wallau, syniadau am nodweddion newydd, neu ofyn cwesti
   <string name="volume_navigation_title">Pori gyda\'r botymau sain</string>
   <string name="volume_navigation_message">Wrth edrych ar neges</string>
   <string name="volume_navigation_list">Wrth edrych ar restr</string>
-  <string name="hide_special_accounts_title">Cuddio Mewnflwch Unedig</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier">- Heb eu darllen</string>
   <string name="search_all_messages_title">Pob neges</string>
@@ -821,6 +823,8 @@ Plîs rho wybod am unrhyw wallau, syniadau am nodweddion newydd, neu ofyn cwesti
   <string name="webview_contextmenu_link_share_action">Rhannu dolen</string>
   <string name="webview_contextmenu_link_copy_action">Copïo\'r ddolen i\'r clipfwrdd</string>
   <string name="webview_contextmenu_link_clipboard_label">Dolen</string>
+  <string name="webview_contextmenu_link_text_copy_action">Copïo testun y ddolen i\'r clipfwrdd</string>
+  <string name="webview_contextmenu_link_text_clipboard_label">Testun dolen</string>
   <string name="webview_contextmenu_image_title">Delwedd</string>
   <string name="webview_contextmenu_image_view_action">Gweld delwedd</string>
   <string name="webview_contextmenu_image_save_action">Cadw\'r ddelwedd</string>
@@ -901,6 +905,8 @@ Plîs rho wybod am unrhyw wallau, syniadau am nodweddion newydd, neu ofyn cwesti
   <string name="recipient_bcc">Bcc</string>
   <string name="recipient_to">At</string>
   <string name="recipient_from">Oddi wrth</string>
+  <string name="unknown_recipient">&lt;Derbyniwr Anhysbys&gt;</string>
+  <string name="unknown_sender">&lt;Anfonwr Anhysbys&gt;</string>
   <string name="address_type_home">Cartref</string>
   <string name="address_type_work">Gwaith</string>
   <string name="address_type_other">Arall</string>

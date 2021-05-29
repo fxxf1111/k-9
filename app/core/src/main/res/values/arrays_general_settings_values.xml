@@ -12,6 +12,7 @@
         <item>de</item>
         <item>et</item>
         <item>en</item>
+        <item>en_GB</item>
         <item>es</item>
         <item>eo</item>
         <item>eu</item>
@@ -38,12 +39,14 @@
         <item>sv</item>
         <item>tr</item>
         <item>el</item>
+        <item>be</item>
         <item>bg</item>
         <item>sr</item>
         <item>uk</item>
         <item>iw</item>
         <item>ar</item>
         <item>fa</item>
+        <item>ml</item>
         <item>ko</item>
         <item>zh_CN</item>
         <item>zh_TW</item>
@@ -65,6 +68,7 @@
         <item>de</item>
         <item>et</item>
         <item>en</item>
+        <item>en_GB</item>
         <item>es</item>
         <item>eo</item>
         <item>eu</item>
@@ -124,6 +128,7 @@
         <item>fa</item>
         <item>am</item>
         <item>hi</item>
+        <item>ml</item>
         <item>te</item>
         <item>kn</item>
         <item>th</item>

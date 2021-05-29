@@ -3,16 +3,16 @@ package com.fsck.k9.message.quote
 import com.fsck.k9.Account.QuoteStyle
 import com.fsck.k9.RobolectricTest
 import com.fsck.k9.TestCoreResourceProvider
-import com.fsck.k9.crlf
 import com.fsck.k9.mail.Address
 import com.fsck.k9.mail.Message
 import com.fsck.k9.mail.Message.RecipientType
+import com.fsck.k9.mail.crlf
 import com.google.common.truth.Truth.assertThat
-import com.nhaarman.mockitokotlin2.doReturn
-import com.nhaarman.mockitokotlin2.eq
-import com.nhaarman.mockitokotlin2.mock
 import java.util.Date
 import org.junit.Test
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.mock
 
 class TextQuoteCreatorTest : RobolectricTest() {
     val sentDate = Date(1540421219L)

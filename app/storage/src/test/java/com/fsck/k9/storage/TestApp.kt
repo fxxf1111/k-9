@@ -6,12 +6,13 @@ import com.fsck.k9.Core
 import com.fsck.k9.CoreResourceProvider
 import com.fsck.k9.DI
 import com.fsck.k9.K9
+import com.fsck.k9.backend.BackendManager
 import com.fsck.k9.coreModules
 import com.fsck.k9.crypto.EncryptionExtractor
 import com.fsck.k9.preferences.K9StoragePersister
 import com.fsck.k9.preferences.StoragePersister
-import com.nhaarman.mockitokotlin2.mock
 import org.koin.dsl.module
+import org.mockito.kotlin.mock
 
 class TestApp : Application() {
     override fun onCreate() {
@@ -30,4 +31,5 @@ val testModule = module {
     single { mock<CoreResourceProvider>() }
     single { mock<EncryptionExtractor>() }
     single<StoragePersister> { K9StoragePersister(get()) }
+    single { mock<BackendManager>() }
 }

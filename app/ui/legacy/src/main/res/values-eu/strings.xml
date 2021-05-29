@@ -9,7 +9,6 @@
   <!--Used in the about dialog-->
   <string name="app_authors">K-9 Txakur-paseatzaileak</string>
   <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project-en zatiak.</string>
-  <string name="source_code">Iturria</string>
   <string name="app_license">Apache lizentzia, 2.0 bertsioa</string>
   <string name="about_libraries">Liburutegiak</string>
   <string name="license">Lizentziak</string>
@@ -115,7 +114,6 @@ Mesedez akatsen berri emateko, ezaugarri berriak gehitzeko eta galderak egiteko
   <string name="unflag_action">Kendu izarra</string>
   <string name="copy_action">Kopiatu</string>
   <string name="show_headers_action">Erakutsi goiburuak</string>
-  <string name="hide_headers_action">Ezkutatu goiburuak</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Helbidea arbelera kopiatuta</item>
     <item quantity="other">Helbideak arbelera kopiatuta</item>
@@ -557,6 +555,7 @@ Mesedez akatsen berri emateko, ezaugarri berriak gehitzeko eta galderak egiteko
   <string name="manage_identities_title">Kudeatu identitateak</string>
   <string name="manage_identities_context_menu_title">Kudeatu identitatea</string>
   <string name="edit_identity_title">Editatu identitatea</string>
+  <string name="edit_identity_save">Gorde</string>
   <string name="new_identity_action">Identitate berria</string>
   <string name="account_settings_always_bcc_label">Mezu guztietarako Bcc</string>
   <string name="manage_identities_edit_action">Editatu</string>
@@ -656,7 +655,6 @@ Mesedez akatsen berri emateko, ezaugarri berriak gehitzeko eta galderak egiteko
   <string name="volume_navigation_title">Bolumen teklekin nabigatu</string>
   <string name="volume_navigation_message">Mezu barruko ikuspegiak</string>
   <string name="volume_navigation_list">Zerrenda barruko ikuspegiak</string>
-  <string name="hide_special_accounts_title">Ezkutatu sarrerako ontzi bateratua</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier"> - Irakurri gabe</string>
   <string name="search_all_messages_title">Mezu guztiak</string>

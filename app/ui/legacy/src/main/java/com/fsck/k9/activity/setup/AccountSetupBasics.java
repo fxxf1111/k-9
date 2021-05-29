@@ -5,15 +5,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
-import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.EditText;
 
 import com.fsck.k9.Account;
 import com.fsck.k9.Core;
@@ -27,18 +26,15 @@ import com.fsck.k9.autodiscovery.api.DiscoveredServerSettings;
 import com.fsck.k9.autodiscovery.api.DiscoveryResults;
 import com.fsck.k9.autodiscovery.api.DiscoveryTarget;
 import com.fsck.k9.autodiscovery.providersxml.ProvidersXmlDiscovery;
-import com.fsck.k9.backend.BackendManager;
-import com.fsck.k9.helper.EmailHelper;
 import com.fsck.k9.helper.Utility;
 import com.fsck.k9.mail.AuthType;
-import com.fsck.k9.mail.ConnectionSecurity;
 import com.fsck.k9.mail.ServerSettings;
 import com.fsck.k9.mailstore.SpecialLocalFoldersCreator;
-import com.fsck.k9.preferences.Protocols;
 import com.fsck.k9.ui.R;
 import com.fsck.k9.ui.ConnectionSettings;
 import com.fsck.k9.view.ClientCertificateSpinner;
 import com.fsck.k9.view.ClientCertificateSpinner.OnClientCertificateChangedListener;
+import com.google.android.material.textfield.TextInputEditText;
 import timber.log.Timber;
 
 /**
@@ -54,22 +50,21 @@ public class AccountSetupBasics extends K9Activity
     private final static String STATE_KEY_CHECKED_INCOMING = "com.fsck.k9.AccountSetupBasics.checkedIncoming";
 
 
-    private final BackendManager backendManager = DI.get(BackendManager.class);
     private final ProvidersXmlDiscovery providersXmlDiscovery = DI.get(ProvidersXmlDiscovery.class);
     private final AccountCreator accountCreator = DI.get(AccountCreator.class);
     private final SpecialLocalFoldersCreator localFoldersCreator = DI.get(SpecialLocalFoldersCreator.class);
 
-    private EditText mEmailView;
-    private EditText mPasswordView;
+    private TextInputEditText mEmailView;
+    private TextInputEditText mPasswordView;
     private CheckBox mClientCertificateCheckBox;
     private ClientCertificateSpinner mClientCertificateSpinner;
     private Button mNextButton;
     private Button mManualSetupButton;
     private Account mAccount;
+    private ViewGroup mAllowClientCertificateView;
 
     private EmailAddressValidator mEmailValidator = new EmailAddressValidator();
     private boolean mCheckedIncoming = false;
-    private CheckBox mShowPasswordCheckBox;
 
     public static void actionNewAccount(Context context) {
         Intent i = new Intent(context, AccountSetupBasics.class);
@@ -84,9 +79,10 @@ public class AccountSetupBasics extends K9Activity
         mPasswordView = findViewById(R.id.account_password);
         mClientCertificateCheckBox = findViewById(R.id.account_client_certificate);
         mClientCertificateSpinner = findViewById(R.id.account_client_certificate_spinner);
+        mAllowClientCertificateView = findViewById(R.id.account_allow_client_certificate);
+
         mNextButton = findViewById(R.id.next);
         mManualSetupButton = findViewById(R.id.manual_setup);
-        mShowPasswordCheckBox = findViewById(R.id.show_password);
         mNextButton.setOnClickListener(this);
         mManualSetupButton.setOnClickListener(this);
     }
@@ -96,13 +92,6 @@ public class AccountSetupBasics extends K9Activity
         mPasswordView.addTextChangedListener(this);
         mClientCertificateCheckBox.setOnCheckedChangeListener(this);
         mClientCertificateSpinner.setOnClientCertificateChangedListener(this);
-        mShowPasswordCheckBox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                showPassword(isChecked);
-            }
-        });
-
     }
 
     @Override
@@ -126,8 +115,6 @@ public class AccountSetupBasics extends K9Activity
         mCheckedIncoming = savedInstanceState.getBoolean(STATE_KEY_CHECKED_INCOMING);
 
         updateViewVisibility(mClientCertificateCheckBox.isChecked());
-
-        showPassword(mShowPasswordCheckBox.isChecked());
     }
 
     @Override
@@ -168,34 +155,20 @@ public class AccountSetupBasics extends K9Activity
         updateViewVisibility(isChecked);
         validateFields();
 
-        // Have the user select (or confirm) the client certificate
-        if (isChecked) {
+        // Have the user select the client certificate if not already selected
+        if ((isChecked) && (mClientCertificateSpinner.getAlias() == null)) {
             mClientCertificateSpinner.chooseCertificate();
         }
     }
 
     private void updateViewVisibility(boolean usingCertificates) {
         if (usingCertificates) {
-            // hide password fields, show client certificate spinner
-            mPasswordView.setVisibility(View.GONE);
-            mShowPasswordCheckBox.setVisibility(View.GONE);
-            mClientCertificateSpinner.setVisibility(View.VISIBLE);
+            // show client certificate spinner
+            mAllowClientCertificateView.setVisibility(View.VISIBLE);
         } else {
-            // show password fields, hide client certificate spinner
-            mPasswordView.setVisibility(View.VISIBLE);
-            mShowPasswordCheckBox.setVisibility(View.VISIBLE);
-            mClientCertificateSpinner.setVisibility(View.GONE);
+            // hide client certificate spinner
+            mAllowClientCertificateView.setVisibility(View.GONE);
         }
-    }
-
-    private void showPassword(boolean show) {
-        int cursorPosition = mPasswordView.getSelectionStart();
-        if (show) {
-            mPasswordView.setInputType(InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        } else {
-            mPasswordView.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        }
-        mPasswordView.setSelection(cursorPosition);
     }
 
     private void validateFields() {
@@ -255,12 +228,10 @@ public class AccountSetupBasics extends K9Activity
         mAccount.setEmail(email);
 
         ServerSettings incomingServerSettings = connectionSettings.getIncoming().newPassword(password);
-        String storeUri = backendManager.createStoreUri(incomingServerSettings);
-        mAccount.setStoreUri(storeUri);
+        mAccount.setIncomingServerSettings(incomingServerSettings);
 
         ServerSettings outgoingServerSettings = connectionSettings.getOutgoing().newPassword(password);
-        String transportUri = backendManager.createTransportUri(outgoingServerSettings);
-        mAccount.setTransportUri(transportUri);
+        mAccount.setOutgoingServerSettings(outgoingServerSettings);
 
         mAccount.setDeletePolicy(accountCreator.getDefaultDeletePolicy(incomingServerSettings.type));
 
@@ -335,24 +306,25 @@ public class AccountSetupBasics extends K9Activity
                 Preferences.getPreferences(this).saveAccount(mAccount);
                 Core.setServicesEnabled(this);
                 AccountSetupNames.actionSetNames(this, mAccount);
-                finish();
             }
         }
     }
 
     private void onManualSetup() {
         String email = mEmailView.getText().toString();
-        String domain = EmailHelper.getDomainFromEmailAddress(email);
 
         String password = null;
         String clientCertificateAlias = null;
         AuthType authenticationType;
+
+        authenticationType = AuthType.PLAIN;
+        password = mPasswordView.getText().toString();
         if (mClientCertificateCheckBox.isChecked()) {
-            authenticationType = AuthType.EXTERNAL;
             clientCertificateAlias = mClientCertificateSpinner.getAlias();
-        } else {
-            authenticationType = AuthType.PLAIN;
-            password = mPasswordView.getText().toString();
+            if (mPasswordView.getText().toString().equals("")) {
+                authenticationType = AuthType.EXTERNAL;
+                password = null;
+            }
         }
 
         if (mAccount == null) {
@@ -362,20 +334,10 @@ public class AccountSetupBasics extends K9Activity
         mAccount.setName(getOwnerName());
         mAccount.setEmail(email);
 
-        // set default uris
-        // NOTE: they will be changed again in AccountSetupAccountType!
-        ServerSettings storeServer = new ServerSettings(Protocols.IMAP, "mail." + domain, -1,
-                ConnectionSecurity.SSL_TLS_REQUIRED, authenticationType, email, password, clientCertificateAlias);
-        ServerSettings transportServer = new ServerSettings(Protocols.SMTP, "mail." + domain, -1,
-                ConnectionSecurity.SSL_TLS_REQUIRED, authenticationType, email, password, clientCertificateAlias);
-        String storeUri = backendManager.createStoreUri(storeServer);
-        String transportUri = backendManager.createTransportUri(transportServer);
-        mAccount.setStoreUri(storeUri);
-        mAccount.setTransportUri(transportUri);
+        InitialAccountSettings initialAccountSettings = new InitialAccountSettings(authenticationType, email, password,
+                clientCertificateAlias);
 
-        AccountSetupAccountType.actionSelectAccountType(this, mAccount, false);
-
-        finish();
+        AccountSetupAccountType.actionSelectAccountType(this, mAccount, false, initialAccountSettings);
     }
 
     public void onClick(View v) {

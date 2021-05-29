@@ -17,6 +17,7 @@ import android.text.TextUtils;
 import com.fsck.k9.backend.api.SyncConfig.ExpungePolicy;
 import com.fsck.k9.mail.Address;
 import com.fsck.k9.mail.NetworkType;
+import com.fsck.k9.mail.ServerSettings;
 import com.fsck.k9.mailstore.StorageManager;
 import com.fsck.k9.mailstore.StorageManager.StorageProvider;
 import org.jetbrains.annotations.NotNull;
@@ -101,20 +102,19 @@ public class Account implements BaseAccount {
     private DeletePolicy deletePolicy = DeletePolicy.NEVER;
 
     private final String accountUuid;
-    private String storeUri;
+    private ServerSettings incomingServerSettings;
+    private ServerSettings outgoingServerSettings;
 
     /**
      * Storage provider ID, used to locate and manage the underlying DB/file
      * storage
      */
     private String localStorageProviderId;
-    private String transportUri;
     private String description;
     private String alwaysBcc;
     private int automaticCheckIntervalMinutes;
     private int displayCount;
     private int chipColor;
-    private long latestOldMessageSeenTime;
     private boolean notifyNewMail;
     private FolderMode folderNotifyNewMailMode;
     private boolean notifySelfNewMail;
@@ -144,7 +144,6 @@ public class Account implements BaseAccount {
     private FolderMode folderPushMode;
     private FolderMode folderTargetMode;
     private int accountNumber;
-    private boolean pushPollOnConnect;
     private boolean notifySync;
     private SortType sortType;
     private Map<SortType, Boolean> sortAscending = new HashMap<>();
@@ -186,18 +185,9 @@ public class Account implements BaseAccount {
     private boolean uploadSentMessages;
     private long lastSyncTime;
     private long lastFolderListRefreshTime;
+    private boolean isFinishedSetup = false;
 
     private boolean changedVisibleLimits = false;
-
-    /**
-     * Indicates whether this account is enabled, i.e. ready for use, or not.
-     *
-     * <p>
-     * Right now newly imported accounts are disabled if the settings file didn't contain a
-     * password for the incoming and/or outgoing server.
-     * </p>
-     */
-    private boolean isEnabled;
 
     /**
      * Database ID of the folder that was last selected for a copy or move operation.
@@ -253,20 +243,20 @@ public class Account implements BaseAccount {
         return accountUuid;
     }
 
-    public synchronized String getStoreUri() {
-        return storeUri;
+    public synchronized ServerSettings getIncomingServerSettings() {
+        return incomingServerSettings;
     }
 
-    public synchronized void setStoreUri(String storeUri) {
-        this.storeUri = storeUri;
+    public synchronized void setIncomingServerSettings(ServerSettings incomingServerSettings) {
+        this.incomingServerSettings = incomingServerSettings;
     }
 
-    public synchronized String getTransportUri() {
-        return transportUri;
+    public synchronized ServerSettings getOutgoingServerSettings() {
+        return outgoingServerSettings;
     }
 
-    public synchronized void setTransportUri(String transportUri) {
-        this.transportUri = transportUri;
+    public synchronized void setOutgoingServerSettings(ServerSettings outgoingServerSettings) {
+        this.outgoingServerSettings = outgoingServerSettings;
     }
 
     @Override
@@ -377,14 +367,6 @@ public class Account implements BaseAccount {
         }
 
         changedVisibleLimits = true;
-    }
-
-    public synchronized long getLatestOldMessageSeenTime() {
-        return latestOldMessageSeenTime;
-    }
-
-    public synchronized void setLatestOldMessageSeenTime(long latestOldMessageSeenTime) {
-        this.latestOldMessageSeenTime = latestOldMessageSeenTime;
     }
 
     public synchronized boolean isNotifyNewMail() {
@@ -813,14 +795,6 @@ public class Account implements BaseAccount {
         this.idleRefreshMinutes = idleRefreshMinutes;
     }
 
-    public synchronized boolean isPushPollOnConnect() {
-        return pushPollOnConnect;
-    }
-
-    public synchronized void setPushPollOnConnect(boolean pushPollOnConnect) {
-        this.pushPollOnConnect = pushPollOnConnect;
-    }
-
     public synchronized boolean isGoToUnreadMessageSearch() {
         return goToUnreadMessageSearch;
     }
@@ -1082,14 +1056,6 @@ public class Account implements BaseAccount {
         return storageProviderIsInternalMemory || StorageManager.getInstance(context).isReady(localStorageProviderId);
     }
 
-    public synchronized boolean isEnabled() {
-        return isEnabled;
-    }
-
-    public synchronized void setEnabled(boolean enabled) {
-        isEnabled = enabled;
-    }
-
     public synchronized boolean isMarkMessageAsReadOnView() {
         return markMessageAsReadOnView;
     }
@@ -1146,4 +1112,11 @@ public class Account implements BaseAccount {
         changedVisibleLimits = false;
     }
 
+    public synchronized boolean isFinishedSetup() {
+        return isFinishedSetup;
+    }
+
+    public void markSetupFinished() {
+        isFinishedSetup = true;
+    }
 }

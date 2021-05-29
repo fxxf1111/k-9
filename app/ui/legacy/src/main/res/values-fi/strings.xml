@@ -11,8 +11,15 @@
   <string name="app_copyright_fmt">Tekijänoikeudet 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Osittaiset tekijänoikeudet -<xliff:g>%s</xliff:g> Androidin avoimen lähdekoodin hanke.</string>
   <string name="source_code">Lähdekoodi</string>
   <string name="app_license">Apache-lisenssi, versio 2.0</string>
+  <string name="about_project_title">Avoimen lähdekoodin projekti</string>
+  <string name="about_website_title">Verkkosivusto</string>
+  <string name="user_forum_title">Käyttäjäfoorumi</string>
+  <string name="about_twitter_title">Twitter</string>
   <string name="about_libraries">Kirjastot</string>
   <string name="license">Lisenssi</string>
+  <string name="changelog_title">Muutosloki</string>
+  <string name="changelog_loading_error">Muutoslokia ei voitu ladata.</string>
+  <string name="changelog_version_title">Versio %s</string>
   <!--Welcome message-->
   <string name="welcome_message_title">Tervetuloa K-9 Mailiin</string>
   <string name="accounts_welcome"><![CDATA[
@@ -117,7 +124,6 @@ Ilmoita virheistä, ota osaa sovelluskehitykseen ja esitä kysymyksiä osoittees
   <string name="unflag_action">Poista tähti</string>
   <string name="copy_action">Kopioi</string>
   <string name="show_headers_action">Näytä otsikot</string>
-  <string name="hide_headers_action">Piilota otsikot</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Osoite kopioitu leikepöydälle</item>
     <item quantity="other">Osoitteet kopioitu leikepöydälle</item>
@@ -578,6 +584,7 @@ Ilmoita virheistä, ota osaa sovelluskehitykseen ja esitä kysymyksiä osoittees
   <string name="manage_identities_title">Identiteettien hallinta</string>
   <string name="manage_identities_context_menu_title">Identiteetin hallinta</string>
   <string name="edit_identity_title">Muokkaa identiteettiä</string>
+  <string name="edit_identity_save">Tallenna</string>
   <string name="new_identity_action">Uusi identiteetti</string>
   <string name="account_settings_always_bcc_label">Piilokopio kaikista viesteistä osoitteeseen</string>
   <string name="manage_identities_edit_action">Muokkaa</string>
@@ -678,15 +685,15 @@ Ilmoita virheistä, ota osaa sovelluskehitykseen ja esitä kysymyksiä osoittees
   <string name="volume_navigation_title">Navigointi äänenvoimakkuusnäppäimillä</string>
   <string name="volume_navigation_message">Viestinäkymä</string>
   <string name="volume_navigation_list">Erilaisia listanäkymiä</string>
-  <string name="hide_special_accounts_title">Piilota yhdistetyt saapuneet</string>
+  <string name="show_unified_inbox_title">Näytä \"Yhdistetty saapuneet\"</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier"> - Lukemattomat</string>
   <string name="search_all_messages_title">Kaikki viestit</string>
   <string name="search_all_messages_detail">Kaikki viestit kansioissa, joihin voidaan tehdä hakuja</string>
-  <string name="integrated_inbox_title">Yhdistetty Saapuneet-kansio</string>
-  <string name="integrated_inbox_detail">Kaikki viestit yhdistetyssä Saapuneet-kansiossa</string>
+  <string name="integrated_inbox_title">Yhdistetty saapuneet</string>
+  <string name="integrated_inbox_detail">Kaikki viestit Yhdistetty saapuneet -kansiossa</string>
   <string name="folder_settings_include_in_integrated_inbox_label">Yhdistä</string>
-  <string name="folder_settings_include_in_integrated_inbox_summary">Kaikki viestit näytetään yhdistetyssä Saapuneet-kansiossa</string>
+  <string name="folder_settings_include_in_integrated_inbox_summary">Kaikki viestit näytetään Yhdistetty saapuneet -kansiossa</string>
   <string name="account_settings_searchable_label">Etsi kansioista</string>
   <string name="account_settings_searchable_all">Kaikki</string>
   <string name="account_settings_searchable_displayable">Näytettävissä olevat</string>
@@ -731,6 +738,7 @@ Ilmoita virheistä, ota osaa sovelluskehitykseen ja esitä kysymyksiä osoittees
   <string name="send_failed_reason">Lähetys epäonnistui: %s</string>
   <string name="save_or_discard_draft_message_dlg_title">Tallennetaanko luonnos?</string>
   <string name="save_or_discard_draft_message_instructions_fmt">Tallennetaanko vai hylätäänkö tämä viesti?</string>
+  <string name="save_or_discard_draft_message_changes">Tallennetaanko vai hylätäänkö muutokset?</string>
   <string name="confirm_discard_draft_message_title">Hylkää viesti?</string>
   <string name="confirm_discard_draft_message">Haluatko varmasti hylätä tämän viestin?</string>
   <string name="select_text_now">Valitse kopioitava teksti.</string>
@@ -1035,4 +1043,5 @@ Voit säilyttää tämän viestin ja käyttää sitä varmuuskopioina salausavai
   <!--permissions-->
   <string name="permission_contacts_rationale_title">Salli pääsy yhteystietoihin</string>
   <string name="permission_contacts_rationale_message">Tämä sovellus vaatii käyttöoikeuden yhteystietoihisi, jotta sovellus voi tehdä ehdotuksia yhteystietoihin liittyen ja näyttää yhteystietojen nimiä sekä kuvia.</string>
+  <string name="generic_loading_error">Tietoja ladatessa tapahtui virhe</string>
 </resources>

@@ -9,7 +9,6 @@
   <!--Used in the about dialog-->
   <string name="app_authors">The K-9 Dog Walkers</string>
   <string name="app_copyright_fmt">Правата запазени 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Част от правата 2006-<xliff:g>%s</xliff:g> на Android Open Source Project.</string>
-  <string name="source_code">Източник</string>
   <string name="app_license">Apache License, Version 2.0</string>
   <string name="about_libraries">Libraries</string>
   <string name="license">License</string>
@@ -115,7 +114,6 @@ K-9 Mail е мощен, безплатен имейл клиент за Андр
   <string name="unflag_action">Премахни звезда</string>
   <string name="copy_action">Копирай</string>
   <string name="show_headers_action">Покажи заглавията</string>
-  <string name="hide_headers_action">Скрий заглавията</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Адресът е копиран</item>
     <item quantity="other">Адресите са копирани</item>
@@ -555,6 +553,7 @@ K-9 Mail е мощен, безплатен имейл клиент за Андр
   <string name="manage_identities_title">Управление на самоличности</string>
   <string name="manage_identities_context_menu_title">Управление на самоличност</string>
   <string name="edit_identity_title">Редактиране на индентичноста</string>
+  <string name="edit_identity_save">Запиши</string>
   <string name="new_identity_action">Нова идентичност</string>
   <string name="account_settings_always_bcc_label">Всс всички съобщения до</string>
   <string name="manage_identities_edit_action">Редактирай</string>
@@ -654,7 +653,6 @@ K-9 Mail е мощен, безплатен имейл клиент за Андр
   <string name="volume_navigation_title">Навигация с клавиш за звука</string>
   <string name="volume_navigation_message">В преглед на съобщението</string>
   <string name="volume_navigation_list">В списъка със съобщения</string>
-  <string name="hide_special_accounts_title">Скрий обща входяща кутия</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier"> - Не прочетени</string>
   <string name="search_all_messages_title">Всички съобщения</string>

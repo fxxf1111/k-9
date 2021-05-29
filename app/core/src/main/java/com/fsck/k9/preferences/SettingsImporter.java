@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,9 +13,9 @@ import java.util.UUID;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import androidx.annotation.VisibleForTesting;
 import android.text.TextUtils;
 
+import androidx.annotation.VisibleForTesting;
 import com.fsck.k9.Account;
 import com.fsck.k9.AccountPreferenceSerializer;
 import com.fsck.k9.Core;
@@ -24,17 +23,19 @@ import com.fsck.k9.DI;
 import com.fsck.k9.Identity;
 import com.fsck.k9.K9;
 import com.fsck.k9.Preferences;
-import com.fsck.k9.backend.BackendManager;
+import com.fsck.k9.ServerSettingsSerializer;
 import com.fsck.k9.mail.AuthType;
 import com.fsck.k9.mail.ConnectionSecurity;
 import com.fsck.k9.mail.ServerSettings;
-import com.fsck.k9.mail.filter.Base64;
 import com.fsck.k9.mailstore.SpecialLocalFoldersCreator;
 import com.fsck.k9.preferences.Settings.InvalidSettingValueException;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 import timber.log.Timber;
+
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
 
 
 public class SettingsImporter {
@@ -367,11 +368,11 @@ public class SettingsImporter {
             throw new InvalidSettingValueException();
         }
 
-        // Write incoming server settings (storeUri)
-        ServerSettings incoming = new ImportedServerSettings(account.incoming);
-        BackendManager backendManager = DI.get(BackendManager.class);
-        String storeUri = backendManager.createStoreUri(incoming);
-        putString(editor, accountKeyPrefix + AccountPreferenceSerializer.STORE_URI_KEY, Base64.encode(storeUri));
+        // Write incoming server settings
+        ServerSettings incoming = createServerSettings(account.incoming);
+        ServerSettingsSerializer serverSettingsSerializer = DI.get(ServerSettingsSerializer.class);
+        String incomingServer = serverSettingsSerializer.serialize(incoming);
+        putString(editor, accountKeyPrefix + AccountPreferenceSerializer.INCOMING_SERVER_SETTINGS_KEY, incomingServer);
 
         String incomingServerName = incoming.host;
         boolean incomingPasswordNeeded = AuthType.EXTERNAL != incoming.authenticationType &&
@@ -386,10 +387,10 @@ public class SettingsImporter {
         String outgoingServerName = null;
         boolean outgoingPasswordNeeded = false;
         if (account.outgoing != null) {
-            // Write outgoing server settings (transportUri)
-            ServerSettings outgoing = new ImportedServerSettings(account.outgoing);
-            String transportUri = backendManager.createTransportUri(outgoing);
-            putString(editor, accountKeyPrefix + AccountPreferenceSerializer.TRANSPORT_URI_KEY, Base64.encode(transportUri));
+            // Write outgoing server settings
+            ServerSettings outgoing = createServerSettings(account.outgoing);
+            String outgoingServer = serverSettingsSerializer.serialize(outgoing);
+            putString(editor, accountKeyPrefix + AccountPreferenceSerializer.OUTGOING_SERVER_SETTINGS_KEY, outgoingServer);
 
             /*
              * Mark account as disabled if the settings file contained a username but no password. However, no password
@@ -641,7 +642,9 @@ public class SettingsImporter {
     private static void putString(StorageEditor editor, String key, String value) {
         if (K9.isDebugLoggingEnabled()) {
             String outputValue = value;
-            if (!K9.isSensitiveDebugLoggingEnabled() && (key.endsWith(".transportUri") || key.endsWith(".storeUri"))) {
+            if (!K9.isSensitiveDebugLoggingEnabled() &&
+                    (key.endsWith("." + AccountPreferenceSerializer.OUTGOING_SERVER_SETTINGS_KEY) ||
+                            key.endsWith("." + AccountPreferenceSerializer.INCOMING_SERVER_SETTINGS_KEY))) {
                 outputValue = "*sensitive*";
             }
             Timber.v("Setting %s=%s", key, outputValue);
@@ -1053,47 +1056,41 @@ public class SettingsImporter {
         return name;
     }
 
-    private static class ImportedServerSettings extends ServerSettings {
-        private final ImportedServer importedServer;
+    private static ServerSettings createServerSettings(ImportedServer importedServer) {
+        String type = ServerTypeConverter.toServerSettingsType(importedServer.type);
+        int port = convertPort(importedServer.port);
+        ConnectionSecurity connectionSecurity = convertConnectionSecurity(importedServer.connectionSecurity);
+        Map<String, String> extra = importedServer.extras != null ?
+                unmodifiableMap(importedServer.extras.settings) : emptyMap();
 
-        public ImportedServerSettings(ImportedServer server) {
-            super(ServerTypeConverter.toServerSettingsType(server.type), server.host, convertPort(server.port),
-                    convertConnectionSecurity(server.connectionSecurity),
-                    server.authenticationType, server.username, server.password,
-                    server.clientCertificateAlias);
-            importedServer = server;
+        return new ServerSettings(type, importedServer.host, port, connectionSecurity,
+                importedServer.authenticationType, importedServer.username, importedServer.password,
+                importedServer.clientCertificateAlias, extra);
+    }
+
+    private static int convertPort(String port) {
+        try {
+            return Integer.parseInt(port);
+        } catch (NumberFormatException e) {
+            return -1;
         }
+    }
 
-        @Override
-        public Map<String, String> getExtra() {
-            return (importedServer.extras != null) ?
-                    Collections.unmodifiableMap(importedServer.extras.settings) : null;
-        }
-
-        private static int convertPort(String port) {
-            try {
-                return Integer.parseInt(port);
-            } catch (NumberFormatException e) {
-                return -1;
-            }
-        }
-
-        private static ConnectionSecurity convertConnectionSecurity(String connectionSecurity) {
-            try {
-                /*
-                 * TODO:
-                 * Add proper settings validation and upgrade capability for server settings.
-                 * Once that exists, move this code into a SettingsUpgrader.
-                 */
-                if ("SSL_TLS_OPTIONAL".equals(connectionSecurity)) {
-                    return ConnectionSecurity.SSL_TLS_REQUIRED;
-                } else if ("STARTTLS_OPTIONAL".equals(connectionSecurity)) {
-                    return ConnectionSecurity.STARTTLS_REQUIRED;
-                }
-                return ConnectionSecurity.valueOf(connectionSecurity);
-            } catch (Exception e) {
+    private static ConnectionSecurity convertConnectionSecurity(String connectionSecurity) {
+        try {
+            /*
+             * TODO:
+             * Add proper settings validation and upgrade capability for server settings.
+             * Once that exists, move this code into a SettingsUpgrader.
+             */
+            if ("SSL_TLS_OPTIONAL".equals(connectionSecurity)) {
                 return ConnectionSecurity.SSL_TLS_REQUIRED;
+            } else if ("STARTTLS_OPTIONAL".equals(connectionSecurity)) {
+                return ConnectionSecurity.STARTTLS_REQUIRED;
             }
+            return ConnectionSecurity.valueOf(connectionSecurity);
+        } catch (Exception e) {
+            return ConnectionSecurity.SSL_TLS_REQUIRED;
         }
     }
 

@@ -150,7 +150,7 @@
             android:label="@string/edit_identity_title"/>
 
         <activity
-            android:name=".activity.NotificationDeleteConfirmation"
+            android:name=".ui.notification.DeleteConfirmationActivity"
             android:excludeFromRecents="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -285,7 +285,11 @@
             android:name=".ui.settings.account.AccountSettingsActivity"
             android:label="@string/account_settings_title_fmt" />
 
-        <receiver  tools:node="remove"
+        <activity
+            android:name=".ui.messagesource.MessageSourceActivity"
+            android:label="@string/show_headers_action" />
+
+        <receiver   tools:node="remove"
             android:name=".service.StorageReceiver"
             android:enabled="true">
             <intent-filter>

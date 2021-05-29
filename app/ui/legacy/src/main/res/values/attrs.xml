@@ -73,6 +73,7 @@
         <attr name="messageListActiveItemBackgroundColor" format="reference|color"/>
         <attr name="messageListPreviewTextColor" format="reference|color"/>
         <attr name="messageListDividerColor" format="reference|color"/>
+        <attr name="messageListStateIconTint" format="reference|color"/>
         <attr name="messageListAttachment" format="reference"/>
         <attr name="messageListAnswered" format="reference"/>
         <attr name="messageListForwarded" format="reference"/>
@@ -88,8 +89,14 @@
         <attr name="tintColorBulletPointNeutral" format="reference|color"/>
         <attr name="tintColorBulletPointNegative" format="reference|color"/>
 
+        <attr name="iconAboutVersion" format="reference"/>
         <attr name="iconAboutAuthors" format="reference"/>
+        <attr name="iconAboutSourceCode" format="reference"/>
         <attr name="iconAboutLicense" format="reference"/>
+        <attr name="iconAboutWebsite" format="reference"/>
+        <attr name="iconAboutTwitter" format="reference"/>
+        <attr name="iconAboutFediverse" format="reference"/>
+        <attr name="iconUserForum" format="reference"/>
 
         <attr name="unencryptedAttachmentUnlock" format="reference|color" />
         <attr name="openpgp_black" format="reference|color" />
@@ -99,6 +106,8 @@
         <attr name="openpgp_blue" format="reference|color" />
         <attr name="openpgp_grey" format="reference|color" />
         <attr name="openpgp_dark_grey" format="reference|color" />
+
+        <attr name="behindRecyclerView" format="reference|color" />
     </declare-styleable>
 
     <declare-styleable name="FoldableLinearLayout">
@@ -124,6 +133,11 @@
 
     <declare-styleable name="SimpleHighlightView">
         <attr name="highlightBackgroundColor" format="color|reference" />
+    </declare-styleable>
+
+    <declare-styleable name="DraggableFrameView">
+        <!-- State when a list item is being dragged. -->
+        <attr format="boolean" name="state_dragged"/>
     </declare-styleable>
 
 </resources>

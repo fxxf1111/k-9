@@ -13,17 +13,25 @@ import com.fsck.k9.setup.ServerNameSuggester
 import org.koin.dsl.module
 
 val mainModule = module {
-    single { Preferences.getPreferences(get()) }
+    single {
+        Preferences(
+            context = get(),
+            storagePersister = get(),
+            localStoreProvider = get(),
+            accountPreferenceSerializer = get()
+        )
+    }
     single { get<Context>().resources }
     single { get<Context>().contentResolver }
     single { LocalStoreProvider() }
     single<PowerManager> { TracingPowerManager.getPowerManager(get()) }
     single { Contacts.getInstance(get()) }
-    single { LocalKeyStore.createInstance(get()) }
+    single { LocalKeyStore(directoryProvider = get()) }
     single { TrustManagerFactory.createInstance(get()) }
     single { LocalKeyStoreManager(get()) }
     single<TrustedSocketFactory> { DefaultTrustedSocketFactory(get(), get()) }
     single { Clock.INSTANCE }
     factory { ServerNameSuggester() }
     factory { EmailAddressValidator() }
+    factory { ServerSettingsSerializer() }
 }

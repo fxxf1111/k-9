@@ -9,7 +9,6 @@
   <!--Used in the about dialog-->
   <string name="app_authors">The K-9 Dog Walkers</string>
   <string name="app_copyright_fmt">Авторське право 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Часткові авторські права 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
-  <string name="source_code">Джерело</string>
   <string name="app_license">Ліцензія Apache версії 2.0</string>
   <string name="about_libraries">Бібліотеки</string>
   <string name="license">Ліцензія</string>
@@ -116,7 +115,6 @@ K-9 Mail — це вільний клієнт електронної пошти 
   <string name="unflag_action">Прибрати зірочку</string>
   <string name="copy_action">Копіювати</string>
   <string name="show_headers_action">Показати заголовки</string>
-  <string name="hide_headers_action">Приховати заголовки</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Адресу скопійовано до комірки обміну</item>
     <item quantity="few">Адресу скопійовано до комірки обміну</item>
@@ -567,6 +565,7 @@ K-9 Mail — це вільний клієнт електронної пошти 
   <string name="manage_identities_title">Управління особами</string>
   <string name="manage_identities_context_menu_title">Управління особою</string>
   <string name="edit_identity_title">Редагувати особу</string>
+  <string name="edit_identity_save">Зберегти</string>
   <string name="new_identity_action">Нова особа</string>
   <string name="account_settings_always_bcc_label">Прихована копія усіх повідомлень до </string>
   <string name="manage_identities_edit_action">Редагувати</string>
@@ -667,7 +666,6 @@ K-9 Mail — це вільний клієнт електронної пошти 
   <string name="volume_navigation_title">Навігація кнопками зміни гучності</string>
   <string name="volume_navigation_message">при перегляді повідомлень</string>
   <string name="volume_navigation_list">у списках</string>
-  <string name="hide_special_accounts_title">Приховати \"Об\'єднані Вхідні\"</string>
   <string name="search_title"><xliff:g id="search_name">%s</xliff:g> <xliff:g id="modifier">%s</xliff:g></string>
   <string name="unread_modifier"> - Непрочитані</string>
   <string name="search_all_messages_title">Всі повідомлення</string>

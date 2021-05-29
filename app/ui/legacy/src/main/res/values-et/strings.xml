@@ -9,7 +9,6 @@
   <!--Used in the about dialog-->
   <string name="app_authors">K-9 Autorid</string>
   <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Portions Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
-  <string name="source_code">Lähtekood</string>
   <string name="app_license">Apache litsents, versioon 2.0</string>
   <string name="about_libraries">Teegid</string>
   <string name="license">Litsents</string>
@@ -87,7 +86,6 @@
   <string name="unflag_action">Eemalda tärn</string>
   <string name="copy_action">Kopeeri</string>
   <string name="show_headers_action">Näita päiseid</string>
-  <string name="hide_headers_action">Peida päised</string>
   <plurals name="copy_address_to_clipboard">
     <item quantity="one">Aadress kopeeritud lõikelauale</item>
     <item quantity="other">Aadressid kopeeritud lõikelauale</item>
@@ -535,6 +533,7 @@
   <string name="manage_identities_title">Halda indentiteete</string>
   <string name="manage_identities_context_menu_title">Halda identiteeti</string>
   <string name="edit_identity_title">Muuda identiteeti</string>
+  <string name="edit_identity_save">Salvesta</string>
   <string name="new_identity_action">Uus identiteet</string>
   <string name="account_settings_always_bcc_label">Kõikide sõnumite Bcc saata</string>
   <string name="manage_identities_edit_action">Muuda</string>
